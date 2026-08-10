@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CookieBuy | Куки + Telegram</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0c14; color: #d0d4e8; font-family: 'Segoe UI', system-ui, sans-serif; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .auth-section { background: #121724; border-radius: 24px; padding: 20px 30px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; border: 1px solid #21273d; }
+        .auth-section .user-info { display: flex; align-items: center; gap: 18px; }
+        .auth-section .user-info .avatar { width: 44px; height: 44px; border-radius: 50%; background: #2a3050; display: flex; align-items: center; justify-content: center; font-size: 22px; border: 2px solid #4a5277; overflow: hidden; }
+        .auth-section .user-info .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .auth-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+        .auth-buttons button { background: #1e2338; border: 1px solid #323a57; color: #d0d6ee; padding: 10px 24px; border-radius: 60px; font-size: 14px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+        .auth-buttons button:hover { background: #2f3657; border-color: #5b6797; }
+        .auth-buttons button.tg { background: #1e3a5f; border-color: #4a7ab5; }
+        .auth-buttons button.tg:hover { background: #2a4d7a; }
+        .auth-buttons button.google { background: #2a2a3a; border-color: #5a5a7a; }
+        .auth-buttons button.google:hover { background: #3a3a50; }
+        .auth-buttons button.logout { background: #3a1a1a; border-color: #6a2a2a; }
+        .auth-buttons button.logout:hover { background: #5a2a2a; }
+        .hidden { display: none !important; }
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1a1f2e; padding: 14px 30px; border-radius: 60px; border: 1px solid #4a5277; z-index: 9999; color: #d0d6ee; font-size: 15px; }
+        .debug-info { background: #1a1a2a; padding: 10px 15px; border-radius: 12px; font-size: 12px; color: #7b83a0; margin-top: 10px; border: 1px solid #2a2a3a; font-family: monospace; }
+        .logo { font-size: 28px; font-weight: 600; background: linear-gradient(135deg, #b8b0e6, #7a8cce); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .logo i { margin-right: 10px; -webkit-text-fill-color: #7a8cce; }
+        .site-title { font-size: 14px; color: #7b83a0; margin-left: 12px; font-weight: 400; -webkit-text-fill-color: #7b83a0; }
+        .tabs { display: flex; gap: 8px; margin: 20px 0 25px 0; border-bottom: 1px solid #1e2335; padding-bottom: 12px; flex-wrap: wrap; }
+        .tabs button { background: transparent; border: none; color: #7b83a0; padding: 10px 24px; cursor: pointer; border-radius: 40px; transition: 0.2s; font-size: 15px; }
+        .tabs button:hover { color: #d0d6ee; background: #1a1f2e; }
+        .tabs button.active { color: #d0d6ee; background: #1e2338; border: 1px solid #323a57; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px; margin: 20px 0; }
+        .product-card { background: #121724; border-radius: 20px; padding: 18px; border: 1px solid #21273d; transition: 0.2s; }
+        .product-card:hover { border-color: #4a5277; transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
+        .product-card .type { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #7b83a0; }
+        .product-card .price { font-size: 24px; font-weight: 600; margin: 12px 0 8px 0; color: #d6dcf5; }
+        .product-card .price small { font-size: 14px; font-weight: 300; color: #7b83a0; }
+        .product-card .btn-buy { width: 100%; background: #2e3552; border: none; color: #e6ecff; padding: 12px; border-radius: 40px; margin-top: 14px; cursor: pointer; font-weight: 500; transition: 0.2s; }
+        .product-card .btn-buy:hover { background: #414b72; }
+        .product-card .cookie-data { font-family: 'Courier New', monospace; font-size: 13px; background: #0b0e18; padding: 8px 12px; border-radius: 12px; margin: 10px 0; word-break: break-all; border: 1px dashed #2e344a; }
+        .product-card .tg-data { font-family: monospace; font-size: 14px; background: #0b0e18; padding: 8px 12px; border-radius: 12px; margin: 10px 0; border: 1px solid #2e344a; }
+        .bot-panel { background: #121724; border-radius: 24px; padding: 22px 25px; border: 1px solid #21273d; margin: 20px 0; }
+        .bot-panel .bot-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 600px) { .bot-panel .bot-stats { grid-template-columns: 1fr; } }
+        .bot-stat-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1b2133; }
+        .modal-overlay { display: none; position: fixed; top:0;left:0;width:100%;height:100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 999; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: #151c2b; padding: 35px 40px; border-radius: 36px; max-width: 520px; width: 90%; border: 1px solid #38405f; }
+        .modal-box .addr { background: #0b0f1a; padding: 16px; border-radius: 18px; font-family: monospace; word-break: break-all; border: 1px solid #2b3350; margin: 16px 0; font-size: 14px; }
+        .modal-box .close-modal { background: #2f3657; border: none; color: #fff; padding: 12px 28px; border-radius: 40px; cursor: pointer; margin-top: 12px; }
+        .modal-box .close-modal:hover { background: #414b72; }
+        .modal-box input { background: #0b0f1a; border: 1px solid #2b3350; color: #d0d6ee; padding: 12px 16px; border-radius: 40px; width: 100%; margin: 10px 0; font-size: 16px; }
+        .promo-input { display: flex; gap: 10px; margin: 15px 0; }
+        .promo-input input { flex: 1; background: #0b0f1a; border: 1px solid #2b3350; color: #d0d6ee; padding: 10px 16px; border-radius: 40px; font-size: 14px; }
+        .promo-input button { background: #2e3552; border: none; color: #e6ecff; padding: 10px 20px; border-radius: 40px; cursor: pointer; font-weight: 500; }
+        .promo-input button:hover { background: #414b72; }
+        .tg-overlay { position: fixed; top:0;left:0;width:100%;height:100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 9999; }
+        .tg-overlay.active { display: flex; }
+        .tg-overlay-box { background: #151c2b; padding: 40px; border-radius: 36px; max-width: 450px; width: 90%; border: 1px solid #38405f; }
+        .tg-overlay-box button { padding: 12px; border-radius: 40px; cursor: pointer; width: 100%; margin: 5px 0; font-size: 16px; }
+        .loot-badge { display: inline-block; background: #1e2338; padding: 3px 12px; border-radius: 40px; font-size: 12px; color: #aab2d4; }
+        .inv-card .status { display: inline-block; padding: 4px 14px; border-radius: 40px; font-size: 12px; margin-top: 8px; }
+        .inv-card .status.active { background: #1a3a2a; color: #5fdc8a; border: 1px solid #2a5a3a; }
+        .inv-card .status.used { background: #3a1a1a; color: #d96c6c; border: 1px solid #5a2a2a; }
+        .inv-card .status.waiting { background: #3a3a1a; color: #f5d98f; border: 1px solid #5a5a2a; }
+        .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px; margin: 20px 0; }
+        .btn-get { background: #2e3552; border: none; color: #e6ecff; padding: 10px 20px; border-radius: 40px; cursor: pointer; margin-top: 12px; font-weight: 500; transition: 0.2s; width: 100%; }
+        .btn-get:hover { background: #414b72; }
+        .btn-get:disabled { opacity: 0.4; cursor: not-allowed; }
+        .warning-box { background: #3a1a1a; border: 1px solid #6a2a2a; padding: 12px 18px; border-radius: 12px; margin: 10px 0; color: #f09f8c; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- AUTH -->
+    <div class="auth-section">
+        <div class="user-info">
+            <div class="avatar" id="userAvatar"><i class="fas fa-user"></i></div>
+            <div>
+                <div id="userName">Гость</div>
+                <div style="font-size:13px; color:#7b83a0;" id="userMethod">Не авторизован</div>
+            </div>
+        </div>
+        <div class="auth-buttons">
+            <button class="tg" onclick="loginWithTG()"><i class="fab fa-telegram-plane"></i> Telegram (демо)</button>
+            <button class="google" onclick="loginWithGoogle()"><i class="fab fa-google"></i> Google</button>
+            <button class="logout" onclick="logout()" id="logoutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Выйти</button>
+        </div>
+    </div>
+
+    <!-- DEBUG -->
+    <div class="debug-info" id="debugInfo">⏳ Инициализация Firebase...</div>
+
+    <!-- WARNING -->
+    <div id="protocolWarning" class="warning-box hidden">
+        ⚠️ Вы открыли сайт как файл (file://). Для входа через Google используйте локальный сервер:<br>
+        <code>python -m http.server 8080</code> → открыть <code>http://localhost:8080</code>
+    </div>
+
+    <!-- MAIN -->
+    <div id="mainContent" class="hidden">
+        <div class="logo"><i class="fas fa-skull"></i>CookieBuy <span class="site-title">| Куки + Telegram</span></div>
+        
+        <div class="tabs">
+            <button class="active" data-tab="tabCookies"><i class="fas fa-cookie-bite"></i> Куки</button>
+            <button data-tab="tabTelegram"><i class="fab fa-telegram-plane"></i> Telegram</button>
+            <button data-tab="tabInventory"><i class="fas fa-box"></i> Инвентарь (<span id="invCount">0</span>)</button>
+        </div>
+
+        <div class="tab-content active" id="tabCookies">
+            <div class="products-grid" id="cookieProducts"><div style="color:#5d6480;padding:40px 0;">Загрузка...</div></div>
+        </div>
+        <div class="tab-content" id="tabTelegram">
+            <div class="products-grid" id="tgProducts"><div style="color:#5d6480;padding:40px 0;">Загрузка...</div></div>
+        </div>
+        <div class="tab-content" id="tabInventory">
+            <div class="inventory-grid" id="inventoryGrid"><div style="color:#5d6480;padding:40px 0;">Загрузка...</div></div>
+        </div>
+
+        <div class="bot-panel">
+            <h3 style="font-weight:400; margin-bottom:15px;"><i class="fas fa-robot"></i> Боты (2 000 всего)</h3>
+            <div class="bot-stats">
+                <div>
+                    <div class="bot-stat-item"><span>🍪 Куки-боты</span> <span id="cookieBotsStatus">0/1000</span></div>
+                    <div class="bot-stat-item"><span>📦 Собрано кук</span> <span id="cookieCollected">0</span></div>
+                </div>
+                <div>
+                    <div class="bot-stat-item"><span>✈️ TG-боты</span> <span id="tgBotsStatus">0/1000</span></div>
+                    <div class="bot-stat-item"><span>📥 Собрано акков</span> <span id="tgCollected">0</span></div>
+                </div>
+            </div>
+            <div style="display:flex; gap:12px; margin-top:15px; flex-wrap:wrap;">
+                <button onclick="forceGen()" style="background:#1e2338; border:1px solid #323a57; color:#d0d6ee; padding:10px 24px; border-radius:40px; cursor:pointer;">➕ Сгенерировать</button>
+                <button onclick="resetDB()" style="background:#1e2338; border:1px solid #323a57; color:#d0d6ee; padding:10px 24px; border-radius:40px; cursor:pointer;">🔄 Сброс</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAYMENT MODAL -->
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal-box">
+            <h2><i class="fas fa-coins"></i> Оплата USDT (TON)</h2>
+            <p style="color:#8890b0;">Отправьте точную сумму на адрес:</p>
+            <div class="addr" id="modalAddress">UQAwY-Xnk6y0l2f_3h51zX--G1hflpS3ZvI8MRshYcfHskWA</div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; margin:10px 0;">
+                <span style="background:#1e2338; padding:4px 16px; border-radius:40px; font-size:14px;">Сеть: <span id="modalNetwork">TON (USDT)</span></span>
+                <span style="background:#1e2338; padding:4px 16px; border-radius:40px; font-size:14px;">Сумма: <span id="modalAmount">0</span> USDT</span>
+            </div>
+            <div class="promo-input">
+                <input type="text" id="promoCodeInput" placeholder="Промокод">
+                <button onclick="applyPromo()">Применить</button>
+            </div>
+            <div id="promoResult" style="font-size:13px; color:#8890b0; margin-bottom:10px;"></div>
+            <button class="close-modal" onclick="confirmPurchase()"><i class="fas fa-check-circle"></i> Подтвердить оплату</button>
+            <button class="close-modal" style="background:#2f2a40; margin-left:8px;" onclick="closeModal()">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- TG OVERLAY -->
+    <div class="tg-overlay" id="tgOverlay">
+        <div class="tg-overlay-box">
+            <h2><i class="fab fa-telegram-plane" style="color:#52a8ff;"></i> Привязка Telegram</h2>
+            <p style="color:#8890b0; margin:15px 0;">Вы перешли по ссылке привязки. Войдите, чтобы завершить:</p>
+            <button onclick="completeTgLink()" style="background:#1e3a5f; border:none; color:white;">Войти через Google</button>
+            <button onclick="completeTgLinkDemo()" style="background:#2a2a3a; border:1px solid #4a4a6a; color:white;">Демо-вход</button>
+            <button onclick="closeTgOverlay()" style="background:transparent; border:1px solid #3a3a5a; color:#8890b0;">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ======== FIREBASE ========
+const firebaseConfig = {
+    apiKey: "AIzaSyDmc0XX2EDzF5Gfyqvf7ZgjzoumRFju1r4",
+    authDomain: "cookiebuystore.firebaseapp.com",
+    databaseURL: "https://cookiebuystore-default-rtdb.firebaseio.com",
+    projectId: "cookiebuystore",
+    storageBucket: "cookiebuystore.firebasestorage.app",
+    messagingSenderId: "440299097748",
+    appId: "1:440299097748:web:2efebb13587f41115c6e81",
+    measurementId: "G-X225TW7NHV"
+};
+
+// Проверка протокола
+if (window.location.protocol === 'file:') {
+    document.getElementById('protocolWarning').classList.remove('hidden');
+}
+
+try {
+    firebase.initializeApp(firebaseConfig);
+    console.log("✅ Firebase initialized");
+    document.getElementById('debugInfo').textContent = "✅ Firebase инициализирован";
+} catch(e) {
+    console.error("❌ Firebase init error:", e);
+    document.getElementById('debugInfo').textContent = "❌ Ошибка Firebase: " + e.message;
+}
+
+const auth = firebase.auth();
+const db = firebase.database();
+const analytics = firebase.analytics();
+
+// ======== КОНСТАНТЫ ========
+const CRYPTO_WALLET = "UQAwY-Xnk6y0l2f_3h51zX--G1hflpS3ZvI8MRshYcfHskWA";
+const CRYPTO_NETWORK = "TON (USDT)";
+
+let currentUser = null;
+let products = [];
+let inventory = [];
+let selectedProduct = null;
+let currentPromo = null;
+let _tgLink = null;
+let cookieCollected = 0;
+let tgCollected = 0;
+
+// ======== АВТОРИЗАЦИЯ ========
+function loginWithGoogle() {
+    document.getElementById('debugInfo').textContent = "⏳ Вход через Google...";
+    
+    // Проверка протокола
+    if (window.location.protocol === 'file:') {
+        showToast('❌ Откройте сайт через сервер: http://localhost:8080');
+        document.getElementById('debugInfo').textContent = "❌ Используйте сервер, а не file://";
+        return;
+    }
+    
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+        .then((result) => {
+            console.log("✅ Google login success:", result.user);
+            document.getElementById('debugInfo').textContent = "✅ Вход выполнен: " + (result.user.displayName || result.user.email);
+            showToast('✅ Вход через Google выполнен');
+        })
+        .catch((error) => {
+            console.error("❌ Google login error:", error);
+            let msg = error.message;
+            if (error.code === 'auth/operation-not-supported-in-this-environment') {
+                msg = 'Запустите сайт через сервер (python -m http.server 8080)';
+            }
+            document.getElementById('debugInfo').textContent = "❌ Ошибка: " + msg;
+            showToast('❌ Ошибка Google: ' + msg);
+        });
+}
+
+function loginWithTG() {
+    document.getElementById('debugInfo').textContent = "⏳ Демо-вход через Telegram...";
+    const email = `tg_${Date.now()}@temp.tg`;
+    const pass = 'password123';
+    
+    auth.createUserWithEmailAndPassword(email, pass)
+        .then(() => auth.signInWithEmailAndPassword(email, pass))
+        .then((user) => {
+            console.log("✅ TG login success:", user);
+            document.getElementById('debugInfo').textContent = "✅ Демо-вход выполнен";
+            showToast('✅ Вход через Telegram (демо)');
+        })
+        .catch((error) => {
+            console.error("❌ TG login error:", error);
+            if (error.code === 'auth/operation-not-allowed') {
+                showToast('❌ Включите Email/Password в Firebase Console → Authentication');
+                document.getElementById('debugInfo').textContent = "❌ Включите Email/Password в Firebase";
+                return;
+            }
+            auth.signInWithEmailAndPassword(email, pass)
+                .then(() => {
+                    document.getElementById('debugInfo').textContent = "✅ Демо-вход выполнен";
+                    showToast('✅ Вход через Telegram (демо)');
+                })
+                .catch((err) => {
+                    console.error("❌ TG retry error:", err);
+                    document.getElementById('debugInfo').textContent = "❌ Ошибка: " + err.message;
+                    showToast('❌ Ошибка входа: ' + err.message);
+                });
+        });
+}
+
+function logout() {
+    auth.signOut();
+    showToast('👋 Выход выполнен');
+}
+
+// ======== AUTH STATE ========
+auth.onAuthStateChanged(user => {
+    console.log("🔄 Auth state changed:", user);
+    if (user) {
+        currentUser = user;
+        document.getElementById('userName').textContent = user.displayName || user.email || 'User';
+        document.getElementById('userMethod').textContent = `✅ Вход выполнен | ID: ${user.uid.substring(0,8)}`;
+        document.getElementById('userAvatar').innerHTML = user.photoURL ? `<img src="${user.photoURL}">` : '<i class="fas fa-user"></i>';
+        document.getElementById('logoutBtn').style.display = 'flex';
+        document.getElementById('mainContent').classList.remove('hidden');
+        document.getElementById('debugInfo').textContent = `✅ Авторизован: ${user.email || user.uid}`;
+        loadData();
+        startBots();
+        checkTgLink();
+    } else {
+        currentUser = null;
+        document.getElementById('userName').textContent = 'Гость';
+        document.getElementById('userMethod').textContent = '❌ Не авторизован';
+        document.getElementById('userAvatar').innerHTML = '<i class="fas fa-user"></i>';
+        document.getElementById('logoutBtn').style.display = 'none';
+        document.getElementById('mainContent').classList.add('hidden');
+        document.getElementById('debugInfo').textContent = '❌ Не авторизован. Нажмите Google или Telegram для входа.';
+        stopBots();
+    }
+});
+
+// ======== TG LINK ========
+function checkTgLink() {
+    const params = new URLSearchParams(window.location.search);
+    const link = params.get('tg_link');
+    if (link && currentUser) {
+        _tgLink = link;
+        document.getElementById('tgOverlay').classList.add('active');
+    }
+}
+
+function completeTgLink() {
+    if (!_tgLink || !currentUser) return;
+    fetch('http://localhost:5000/api/confirm_tg_link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: _tgLink, firebase_uid: currentUser.uid })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Telegram привязан!');
+            closeTgOverlay();
+        } else {
+            showToast('❌ Ошибка: ' + (data.error || 'unknown'));
+        }
+    })
+    .catch(() => showToast('❌ Сервер бота не отвечает'));
+}
+
+function completeTgLinkDemo() {
+    showToast('✅ Демо-привязка');
+    closeTgOverlay();
+}
+
+function closeTgOverlay() {
+    document.getElementById('tgOverlay').classList.remove('active');
+    _tgLink = null;
+}
+
+// ======== DATABASE ========
+function loadData() {
+    if (!currentUser) return;
+    db.ref('products').on('value', snap => {
+        products = [];
+        snap.forEach(child => {
+            products.push({ id: child.key, ...child.val() });
+        });
+        renderProducts();
+    });
+    db.ref(`users/${currentUser.uid}/inventory`).on('value', snap => {
+        inventory = [];
+        snap.forEach(child => {
+            inventory.push({ id: child.key, ...child.val() });
+        });
+        renderInventory();
+        document.getElementById('invCount').textContent = inventory.length;
+    });
+}
+
+function saveProduct(product) {
+    if (!currentUser) return;
+    const ref = db.ref('products').push();
+    product.id = ref.key;
+    ref.set(product);
+}
+
+function buyProduct(product) {
+    if (!currentUser) {
+        showToast('Авторизуйтесь!');
+        return;
+    }
+    selectedProduct = product;
+    document.getElementById('modalAddress').textContent = CRYPTO_WALLET;
+    document.getElementById('modalNetwork').textContent = CRYPTO_NETWORK;
+    document.getElementById('modalAmount').textContent = product.price.toFixed(1);
+    document.getElementById('promoResult').textContent = '';
+    document.getElementById('promoCodeInput').value = '';
+    currentPromo = null;
+    document.getElementById('paymentModal').classList.add('active');
+}
+
+function confirmPurchase() {
+    if (!selectedProduct || !currentUser) return;
+    let finalPrice = selectedProduct.price;
+    if (currentPromo) {
+        if (currentPromo.type === 'percent') {
+            finalPrice = finalPrice * (1 - currentPromo.discount / 100);
+        } else if (currentPromo.type === 'fixed') {
+            finalPrice = Math.max(0, finalPrice - currentPromo.discount);
+        } else if (currentPromo.type === 'free') {
+            finalPrice = 0;
+        }
+        finalPrice = Math.round(finalPrice * 100) / 100;
+    }
+    
+    const invItem = {
+        ...selectedProduct,
+        purchasedAt: Date.now(),
+        status: selectedProduct.type === 'tg' ? 'waiting_code' : 'active',
+        owner: currentUser.uid,
+        price_paid: finalPrice
+    };
+    db.ref(`users/${currentUser.uid}/inventory`).push(invItem);
+    db.ref(`products/${selectedProduct.id}`).remove();
+    closeModal();
+    showToast('✅ Товар куплен!');
+    selectedProduct = null;
+    currentPromo = null;
+}
+
+function getProduct(itemId) {
+    const item = inventory.find(p => p.id === itemId);
+    if (!item) return;
+    if (item.status === 'used') {
+        showToast('❌ Товар уже использован');
+        return;
+    }
+    if (item.type === 'tg' && item.status === 'waiting_code') {
+        fetch('http://localhost:5000/api/get_tg_code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ item_id: itemId, user_id: currentUser.uid })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(`📱 Telegram аккаунт\n\nНомер: ${item.data}\nКод: ${data.code}\n2FA: ${item.twofa || 'нет'}`);
+                db.ref(`users/${currentUser.uid}/inventory/${itemId}/status`).set('active');
+                showToast('✅ Аккаунт выдан!');
+            } else {
+                showToast('❌ Ошибка получения кода');
+            }
+        })
+        .catch(() => showToast('❌ Сервер бота не отвечает'));
+        return;
+    }
+    const data = item.type === 'cookie' ? item.data : `📱 ${item.data}\nСессий: ${item.stats?.sessions || '?'}\nГрупп: ${item.stats?.groups || '?'}`;
+    alert(`📦 ВЫДАЧА ТОВАРА\n\n${data}`);
+    db.ref(`users/${currentUser.uid}/inventory/${itemId}/status`).set('used');
+    showToast('✅ Товар выдан!');
+}
+
+// ======== PROMO ========
+function applyPromo() {
+    const code = document.getElementById('promoCodeInput').value.trim();
+    if (!code) return;
+    fetch('http://localhost:5000/api/apply_promo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code, user_id: currentUser?.uid })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            currentPromo = data;
+            document.getElementById('promoResult').textContent = `✅ Скидка: ${data.discount}${data.type === 'percent' ? '%' : ' USDT'}`;
+            let price = selectedProduct.price;
+            if (data.type === 'percent') price = price * (1 - data.discount / 100);
+            else if (data.type === 'fixed') price = Math.max(0, price - data.discount);
+            else if (data.type === 'free') price = 0;
+            document.getElementById('modalAmount').textContent = Math.round(price * 100) / 100;
+        } else {
+            document.getElementById('promoResult').textContent = '❌ ' + (data.error || 'Неверный код');
+        }
+    })
+    .catch(() => showToast('❌ Сервер бота не отвечает'));
+}
+
+// ======== RENDER ========
+function renderProducts() {
+    const cookieGrid = document.getElementById('cookieProducts');
+    const tgGrid = document.getElementById('tgProducts');
+    const cookies = products.filter(p => p
