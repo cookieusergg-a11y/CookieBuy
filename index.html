@@ -11,8 +11,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #0a0c14; color: #d0d4e8; font-family: 'Segoe UI', system-ui, sans-serif; padding: 20px; }
+        body { background: #0a0c14; color: #d0d4e8; font-family: 'Segoe UI', system-ui, sans-serif; padding: 20px; min-height: 100vh; }
         .container { max-width: 1400px; margin: 0 auto; }
+        
         .auth-section { background: #121724; border-radius: 24px; padding: 20px 30px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; border: 1px solid #21273d; }
         .auth-section .user-info { display: flex; align-items: center; gap: 18px; }
         .auth-section .user-info .avatar { width: 44px; height: 44px; border-radius: 50%; background: #2a3050; display: flex; align-items: center; justify-content: center; font-size: 22px; border: 2px solid #4a5277; overflow: hidden; }
@@ -27,52 +28,99 @@
         .auth-buttons button.logout { background: #3a1a1a; border-color: #6a2a2a; }
         .auth-buttons button.logout:hover { background: #5a2a2a; }
         .hidden { display: none !important; }
-        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1a1f2e; padding: 14px 30px; border-radius: 60px; border: 1px solid #4a5277; z-index: 9999; color: #d0d6ee; font-size: 15px; }
+        
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1a1f2e; padding: 14px 30px; border-radius: 60px; border: 1px solid #4a5277; z-index: 9999; color: #d0d6ee; font-size: 15px; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        
         .debug-info { background: #1a1a2a; padding: 10px 15px; border-radius: 12px; font-size: 12px; color: #7b83a0; margin-top: 10px; border: 1px solid #2a2a3a; font-family: monospace; }
-        .logo { font-size: 28px; font-weight: 600; background: linear-gradient(135deg, #b8b0e6, #7a8cce); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0 25px 0; border-bottom: 1px solid #1e2335; flex-wrap: wrap; gap: 15px; }
+        .logo { font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #b8b0e6, #7a8cce); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .logo i { margin-right: 10px; -webkit-text-fill-color: #7a8cce; }
         .site-title { font-size: 14px; color: #7b83a0; margin-left: 12px; font-weight: 400; -webkit-text-fill-color: #7b83a0; }
         .bot-username { background: #1a1f2e; padding: 6px 16px; border-radius: 40px; font-size: 13px; color: #52a8ff; border: 1px solid #2a3a5a; margin-left: 10px; }
+        .admin-badge { background: #5a2a2a; padding: 4px 14px; border-radius: 40px; font-size: 12px; color: #f09f8c; border: 1px solid #8a4a4a; margin-left: 10px; }
+        
+        .balance-box { background: #121724; border-radius: 16px; padding: 12px 24px; border: 1px solid #2a3a5a; display: inline-flex; align-items: center; gap: 12px; }
+        .balance-box .amount { font-size: 22px; font-weight: 700; color: #5fdc8a; }
+        .balance-box .label { font-size: 13px; color: #7b83a0; }
+        .balance-box i { color: #f5d98f; }
+        
         .tabs { display: flex; gap: 8px; margin: 20px 0 25px 0; border-bottom: 1px solid #1e2335; padding-bottom: 12px; flex-wrap: wrap; }
         .tabs button { background: transparent; border: none; color: #7b83a0; padding: 10px 24px; cursor: pointer; border-radius: 40px; transition: 0.2s; font-size: 15px; }
         .tabs button:hover { color: #d0d6ee; background: #1a1f2e; }
         .tabs button.active { color: #d0d6ee; background: #1e2338; border: 1px solid #323a57; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        
+        .search-box { display: flex; gap: 12px; margin: 15px 0; flex-wrap: wrap; }
+        .search-box input { flex: 1; min-width: 200px; background: #0b0f1a; border: 1px solid #2b3350; color: #d0d6ee; padding: 12px 20px; border-radius: 40px; font-size: 15px; transition: 0.2s; }
+        .search-box input:focus { border-color: #4a5277; outline: none; box-shadow: 0 0 20px rgba(74, 82, 119, 0.2); }
+        .search-box input::placeholder { color: #4a5277; }
+        .search-box .search-icon { background: #1e2338; border: 1px solid #323a57; color: #7b83a0; padding: 12px 20px; border-radius: 40px; cursor: pointer; transition: 0.2s; }
+        .search-box .search-icon:hover { background: #2f3657; color: #d0d6ee; }
+        
         .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px; margin: 20px 0; }
-        .product-card { background: #121724; border-radius: 20px; padding: 18px; border: 1px solid #21273d; transition: 0.2s; }
-        .product-card:hover { border-color: #4a5277; transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
-        .product-card .type { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #7b83a0; }
-        .product-card .price { font-size: 24px; font-weight: 600; margin: 12px 0 8px 0; color: #d6dcf5; }
+        .product-card { background: #121724; border-radius: 20px; padding: 18px; border: 1px solid #21273d; transition: 0.25s; }
+        .product-card:hover { border-color: #4a5277; transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
+        .product-card .type { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #7b83a0; }
+        .product-card .price { font-size: 24px; font-weight: 700; margin: 10px 0 6px 0; color: #d6dcf5; }
         .product-card .price small { font-size: 14px; font-weight: 300; color: #7b83a0; }
-        .product-card .btn-buy { width: 100%; background: #2e3552; border: none; color: #e6ecff; padding: 12px; border-radius: 40px; margin-top: 14px; cursor: pointer; font-weight: 500; transition: 0.2s; }
+        .product-card .btn-buy { width: 100%; background: #2e3552; border: none; color: #e6ecff; padding: 12px; border-radius: 40px; margin-top: 14px; cursor: pointer; font-weight: 600; transition: 0.2s; }
         .product-card .btn-buy:hover { background: #414b72; }
-        .product-card .cookie-data { font-family: 'Courier New', monospace; font-size: 13px; background: #0b0e18; padding: 8px 12px; border-radius: 12px; margin: 10px 0; word-break: break-all; border: 1px dashed #2e344a; }
-        .product-card .tg-data { font-family: monospace; font-size: 14px; background: #0b0e18; padding: 8px 12px; border-radius: 12px; margin: 10px 0; border: 1px solid #2e344a; }
-        .bot-panel { background: #121724; border-radius: 24px; padding: 22px 25px; border: 1px solid #21273d; margin: 20px 0; }
-        .bot-panel .bot-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 600px) { .bot-panel .bot-stats { grid-template-columns: 1fr; } }
-        .bot-stat-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1b2133; }
-        .modal-overlay { display: none; position: fixed; top:0;left:0;width:100%;height:100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 999; }
-        .modal-overlay.active { display: flex; }
-        .modal-box { background: #151c2b; padding: 35px 40px; border-radius: 36px; max-width: 520px; width: 90%; border: 1px solid #38405f; }
-        .modal-box .addr { background: #0b0f1a; padding: 16px; border-radius: 18px; font-family: monospace; word-break: break-all; border: 1px solid #2b3350; margin: 16px 0; font-size: 14px; }
-        .modal-box .close-modal { background: #2f3657; border: none; color: #fff; padding: 12px 28px; border-radius: 40px; cursor: pointer; margin-top: 12px; }
-        .modal-box .close-modal:hover { background: #414b72; }
-        .modal-box input { background: #0b0f1a; border: 1px solid #2b3350; color: #d0d6ee; padding: 12px 16px; border-radius: 40px; width: 100%; margin: 10px 0; font-size: 16px; }
-        .promo-input { display: flex; gap: 10px; margin: 15px 0; }
-        .promo-input input { flex: 1; background: #0b0f1a; border: 1px solid #2b3350; color: #d0d6ee; padding: 10px 16px; border-radius: 40px; font-size: 14px; }
-        .promo-input button { background: #2e3552; border: none; color: #e6ecff; padding: 10px 20px; border-radius: 40px; cursor: pointer; font-weight: 500; }
-        .promo-input button:hover { background: #414b72; }
+        .product-card .cookie-data, .product-card .tg-data { font-family: 'Courier New', monospace; font-size: 13px; background: #0b0e18; padding: 8px 12px; border-radius: 12px; margin: 10px 0; word-break: break-all; border: 1px dashed #2e344a; }
+        .product-card .tg-data { border: 1px solid #2e344a; }
         .loot-badge { display: inline-block; background: #1e2338; padding: 3px 12px; border-radius: 40px; font-size: 12px; color: #aab2d4; }
+        
+        .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px; margin: 20px 0; }
+        .inv-card { background: #121724; border-radius: 20px; padding: 18px; border: 1px solid #21273d; }
         .inv-card .status { display: inline-block; padding: 4px 14px; border-radius: 40px; font-size: 12px; margin-top: 8px; }
         .inv-card .status.active { background: #1a3a2a; color: #5fdc8a; border: 1px solid #2a5a3a; }
         .inv-card .status.used { background: #3a1a1a; color: #d96c6c; border: 1px solid #5a2a2a; }
         .inv-card .status.waiting { background: #3a3a1a; color: #f5d98f; border: 1px solid #5a5a2a; }
-        .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px; margin: 20px 0; }
-        .btn-get { background: #2e3552; border: none; color: #e6ecff; padding: 10px 20px; border-radius: 40px; cursor: pointer; margin-top: 12px; font-weight: 500; transition: 0.2s; width: 100%; }
+        .btn-get { background: #2e3552; border: none; color: #e6ecff; padding: 10px 20px; border-radius: 40px; cursor: pointer; margin-top: 12px; font-weight: 600; transition: 0.2s; width: 100%; }
         .btn-get:hover { background: #414b72; }
         .btn-get:disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        .bot-panel { background: #121724; border-radius: 24px; padding: 22px 25px; border: 1px solid #21273d; margin: 20px 0; }
+        .bot-panel .bot-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 600px) { .bot-panel .bot-stats { grid-template-columns: 1fr; } }
+        .bot-stat-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1b2133; }
+        .stat-highlight { color: #5fdc8a; font-weight: 600; }
+        
+        .admin-panel { background: #1a1a2a; border: 1px solid #4a2a2a; border-radius: 24px; padding: 25px; margin: 20px 0; }
+        .admin-panel h2 { color: #f09f8c; margin-bottom: 15px; display: flex; align-items: center; gap: 12px; }
+        .admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .admin-card { background: #121724; border-radius: 16px; padding: 18px; border: 1px solid #2a2a3a; }
+        .admin-card h4 { color: #aab2d4; margin-bottom: 10px; }
+        .admin-card input, .admin-card select { width: 100%; background: #0b0f1a; border: 1px solid #2b3350; color: #d0d6ee; padding: 10px 14px; border-radius: 40px; margin: 5px 0; font-size: 14px; }
+        .admin-card button { background: #2e3552; border: none; color: white; padding: 10px 20px; border-radius: 40px; cursor: pointer; margin-top: 8px; width: 100%; transition: 0.2s; }
+        .admin-card button:hover { background: #414b72; }
+        .admin-card .btn-danger { background: #5a2a2a; }
+        .admin-card .btn-danger:hover { background: #7a3a3a; }
+        .admin-card .btn-success { background: #1a3a2a; }
+        .admin-card .btn-success:hover { background: #2a5a3a; }
+        .admin-card .btn-warning { background: #5a4a2a; }
+        .admin-card .btn-warning:hover { background: #7a5a3a; }
+        
+        .modal-overlay { display: none; position: fixed; top:0;left:0;width:100%;height:100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 999; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: #151c2b; padding: 35px 40px; border-radius: 36px; max-width: 520px; width: 90%; border: 1px solid #38405f; max-height: 90vh; overflow-y: auto; }
+        .modal-box .addr { background: #0b0f1a; padding: 16px; border-radius: 18px; font-family: monospace; word-break: break-all; border: 1px solid #2b3350; margin: 16px 0; font-size: 14px; }
+        .modal-box .close-modal { background: #2f3657; border: none; color: #fff; padding: 12px 28px; border-radius: 40px; cursor: pointer; margin-top: 12px; transition: 0.2s; }
+        .modal-box .close-modal:hover { background: #414b72; }
+        .modal-box input { background: #0b0f1a; border: 1px solid #2b3350; color: #d0d6ee; padding: 12px 16px; border-radius: 40px; width: 100%; margin: 10px 0; font-size: 16px; }
+        .promo-input { display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap; }
+        .promo-input input { flex: 1; min-width: 150px; background: #0b0f1a; border: 1px solid #2b3350; color: #d0d6ee; padding: 10px 16px; border-radius: 40px; font-size: 14px; }
+        .promo-input button { background: #2e3552; border: none; color: #e6ecff; padding: 10px 20px; border-radius: 40px; cursor: pointer; font-weight: 500; }
+        .promo-input button:hover { background: #414b72; }
+        .payment-status { padding: 12px; border-radius: 12px; margin: 10px 0; text-align: center; }
+        .payment-status.waiting { background: #1a1a2a; border: 1px solid #3a3a5a; color: #8890b0; }
+        .payment-status.confirmed { background: #1a2a1a; border: 1px solid #2a5a2a; color: #5fdc8a; }
+        .payment-status.failed { background: #2a1a1a; border: 1px solid #5a2a2a; color: #d96c6c; }
+        .check-payment-btn { background: #2e3552; border: none; color: white; padding: 10px 20px; border-radius: 40px; cursor: pointer; font-size: 14px; margin-top: 8px; width: 100%; }
+        .check-payment-btn:hover { background: #414b72; }
+        
         .tg-login-box { background: #0b0f1a; padding: 20px; border-radius: 16px; border: 1px solid #2b3350; margin: 15px 0; text-align: center; }
         .tg-login-box .tg-link { font-family: monospace; font-size: 14px; background: #1a1f2e; padding: 12px; border-radius: 12px; word-break: break-all; margin: 10px 0; }
         .copy-btn { background: #2e3552; border: none; color: #e6ecff; padding: 8px 20px; border-radius: 40px; cursor: pointer; font-size: 13px; }
@@ -80,12 +128,18 @@
         .open-bot-btn { background: #1e3a5f; border: none; color: white; padding: 10px 24px; border-radius: 40px; cursor: pointer; font-size: 15px; margin: 5px; }
         .open-bot-btn:hover { background: #2a4d7a; }
         .btn-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
-        .payment-status { padding: 10px; border-radius: 12px; margin: 10px 0; text-align: center; }
-        .payment-status.waiting { background: #1a1a2a; border: 1px solid #3a3a5a; color: #8890b0; }
-        .payment-status.confirmed { background: #1a2a1a; border: 1px solid #2a5a2a; color: #5fdc8a; }
-        .payment-status.failed { background: #2a1a1a; border: 1px solid #5a2a2a; color: #d96c6c; }
-        .check-payment-btn { background: #2e3552; border: none; color: white; padding: 10px 20px; border-radius: 40px; cursor: pointer; font-size: 14px; margin-top: 8px; }
-        .check-payment-btn:hover { background: #414b72; }
+        
+        @media (max-width: 768px) {
+            .auth-section { flex-direction: column; align-items: stretch; }
+            .auth-buttons { justify-content: center; }
+            .header { flex-direction: column; align-items: flex-start; }
+            .balance-box { width: 100%; justify-content: center; }
+            .admin-grid { grid-template-columns: 1fr; }
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0c14; }
+        ::-webkit-scrollbar-thumb { background: #2a3050; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3a4a6a; }
     </style>
 </head>
 <body>
@@ -95,7 +149,7 @@
         <div class="user-info">
             <div class="avatar" id="userAvatar"><i class="fas fa-user"></i></div>
             <div>
-                <div id="userName">Гость</div>
+                <div id="userName" style="font-weight:600;">Гость</div>
                 <div style="font-size:13px; color:#7b83a0;" id="userMethod">Не авторизован</div>
             </div>
         </div>
@@ -106,63 +160,156 @@
         </div>
     </div>
 
+    <!-- HEADER -->
+    <div class="header">
+        <div>
+            <div class="logo"><i class="fas fa-skull"></i>CookieBuy <span class="site-title">| Куки + Telegram</span></div>
+            <div style="margin-top:8px;">
+                <span class="bot-username"><i class="fab fa-telegram"></i> @cookiebuy_RUbot</span>
+                <span id="adminBadge" class="admin-badge hidden"><i class="fas fa-crown"></i> Админ</span>
+            </div>
+        </div>
+        <div class="balance-box">
+            <i class="fas fa-wallet"></i>
+            <span class="label">Баланс:</span>
+            <span class="amount" id="userBalance">0.00</span>
+            <span style="font-size:13px; color:#7b83a0;">USDT</span>
+        </div>
+    </div>
+
     <!-- DEBUG -->
-    <div class="debug-info" id="debugInfo">⏳ Инициализация Firebase...</div>
+    <div class="debug-info" id="debugInfo">⏳ Инициализация...</div>
+
+    <!-- TG LOGIN STATUS -->
+    <div id="tgStatus" class="tg-login-box hidden">
+        <i class="fab fa-telegram-plane" style="color:#52a8ff; font-size:28px;"></i>
+        <p style="margin-top:10px; font-size:16px; font-weight:500;">Вход через Telegram</p>
+        <div class="tg-link" id="tgLinkDisplay">Загрузка...</div>
+        <div class="btn-group">
+            <button class="open-bot-btn" onclick="openBot()"><i class="fab fa-telegram-plane"></i> Открыть бота</button>
+            <button class="copy-btn" onclick="copyTgLink()"><i class="fas fa-copy"></i> Копировать</button>
+        </div>
+        <p style="margin-top:12px; color:#7b83a0; font-size:13px;">После входа в бота нажмите "Проверить вход"</p>
+        <button onclick="checkTgLogin()" style="background:#2e3552; border:none; color:white; padding:10px 24px; border-radius:40px; cursor:pointer; margin-top:8px; font-size:15px;">
+            🔄 Проверить вход
+        </button>
+    </div>
 
     <!-- MAIN -->
     <div id="mainContent" class="hidden">
-        <div class="logo">
-            <i class="fas fa-skull"></i>CookieBuy 
-            <span class="site-title">| Куки + Telegram</span>
-            <span class="bot-username"><i class="fab fa-telegram"></i> @cookiebuy_RUbot</span>
-        </div>
-
-        <!-- TG LOGIN STATUS -->
-        <div id="tgStatus" class="tg-login-box hidden">
-            <i class="fab fa-telegram-plane" style="color:#52a8ff; font-size:28px;"></i>
-            <p style="margin-top:10px; font-size:16px; font-weight:500;">Вход через Telegram</p>
-            <p style="color:#8890b0; font-size:14px; margin-bottom:10px;">Перейдите в бота по ссылке:</p>
-            <div class="tg-link" id="tgLinkDisplay">Загрузка...</div>
-            <div class="btn-group">
-                <button class="open-bot-btn" onclick="openBot()"><i class="fab fa-telegram-plane"></i> Открыть бота</button>
-                <button class="copy-btn" onclick="copyTgLink()"><i class="fas fa-copy"></i> Копировать</button>
-            </div>
-            <p style="margin-top:12px; color:#7b83a0; font-size:13px;">После входа в бота нажмите "Проверить вход"</p>
-            <button onclick="checkTgLogin()" style="background:#2e3552; border:none; color:white; padding:10px 24px; border-radius:40px; cursor:pointer; margin-top:8px; font-size:15px;">
-                🔄 Проверить вход
-            </button>
-        </div>
-        
+        <!-- TABS -->
         <div class="tabs">
             <button class="active" data-tab="tabCookies"><i class="fas fa-cookie-bite"></i> Куки</button>
             <button data-tab="tabTelegram"><i class="fab fa-telegram-plane"></i> Telegram</button>
             <button data-tab="tabInventory"><i class="fas fa-box"></i> Инвентарь (<span id="invCount">0</span>)</button>
+            <button data-tab="tabAdmin" id="adminTabBtn" class="hidden"><i class="fas fa-crown"></i> Админ-панель</button>
         </div>
 
+        <!-- SEARCH -->
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="🔍 Поиск товаров по цене, луту, типу..." oninput="searchProducts()">
+            <button class="search-icon" onclick="searchProducts()"><i class="fas fa-search"></i></button>
+            <button class="search-icon" onclick="resetSearch()" style="background:#2a2a3a;"><i class="fas fa-times"></i></button>
+        </div>
+
+        <!-- TAB: Cookies -->
         <div class="tab-content active" id="tabCookies">
             <div class="products-grid" id="cookieProducts"><div style="color:#5d6480;padding:40px 0;text-align:center;">🍪 Загрузка...</div></div>
         </div>
+
+        <!-- TAB: Telegram -->
         <div class="tab-content" id="tabTelegram">
             <div class="products-grid" id="tgProducts"><div style="color:#5d6480;padding:40px 0;text-align:center;">✈️ Загрузка...</div></div>
         </div>
+
+        <!-- TAB: Inventory -->
         <div class="tab-content" id="tabInventory">
             <div class="inventory-grid" id="inventoryGrid"><div style="color:#5d6480;padding:40px 0;text-align:center;">📭 Загрузка...</div></div>
         </div>
 
+        <!-- TAB: Admin -->
+        <div class="tab-content" id="tabAdmin">
+            <div class="admin-panel" id="adminPanel">
+                <h2><i class="fas fa-crown" style="color:#f5d98f;"></i> Админ-панель</h2>
+                <div class="admin-grid">
+                    <!-- Добавить товар -->
+                    <div class="admin-card">
+                        <h4><i class="fas fa-plus-circle"></i> Добавить товар</h4>
+                        <select id="adminProductType">
+                            <option value="cookie">Кука Roblox</option>
+                            <option value="tg">Telegram аккаунт</option>
+                        </select>
+                        <input type="text" id="adminProductData" placeholder="Данные (кука или номер)">
+                        <input type="number" id="adminProductPrice" placeholder="Цена в USDT" step="0.1">
+                        <input type="number" id="adminProductLoot" placeholder="Лут (1-100)" value="50">
+                        <button class="btn-success" onclick="adminAddProduct()"><i class="fas fa-check"></i> Добавить</button>
+                    </div>
+
+                    <!-- Создать промокод -->
+                    <div class="admin-card">
+                        <h4><i class="fas fa-ticket-alt"></i> Создать промокод</h4>
+                        <input type="text" id="adminPromoCode" placeholder="Код (например SUMMER)">
+                        <input type="number" id="adminPromoDiscount" placeholder="Скидка (10 = 10%)" step="1">
+                        <select id="adminPromoType">
+                            <option value="percent">% Процент</option>
+                            <option value="fixed">Фиксированный USDT</option>
+                            <option value="free">Бесплатно</option>
+                            <option value="balance">+ на баланс</option>
+                        </select>
+                        <button class="btn-warning" onclick="adminCreatePromo()"><i class="fas fa-ticket-alt"></i> Создать</button>
+                    </div>
+
+                    <!-- Пополнить баланс -->
+                    <div class="admin-card">
+                        <h4><i class="fas fa-coins" style="color:#5fdc8a;"></i> Пополнить баланс</h4>
+                        <input type="text" id="adminBalanceUser" placeholder="UID пользователя">
+                        <input type="number" id="adminBalanceAmount" placeholder="Сумма USDT" step="0.01">
+                        <button class="btn-success" onclick="adminAddBalance()"><i class="fas fa-plus"></i> Пополнить</button>
+                    </div>
+
+                    <!-- Списать баланс -->
+                    <div class="admin-card">
+                        <h4><i class="fas fa-minus-circle" style="color:#d96c6c;"></i> Списать баланс</h4>
+                        <input type="text" id="adminDebitUser" placeholder="UID пользователя">
+                        <input type="number" id="adminDebitAmount" placeholder="Сумма USDT" step="0.01">
+                        <button class="btn-danger" onclick="adminDebitBalance()"><i class="fas fa-minus"></i> Списать</button>
+                    </div>
+
+                    <!-- Управление -->
+                    <div class="admin-card">
+                        <h4><i class="fas fa-tools"></i> Управление</h4>
+                        <button class="btn-danger" onclick="adminClearProducts()"><i class="fas fa-trash"></i> Очистить все товары</button>
+                        <button class="btn-danger" onclick="adminClearInventory()"><i class="fas fa-trash"></i> Очистить весь инвентарь</button>
+                        <button style="margin-top:8px; background:#1a3a5a;" onclick="adminRefreshData()"><i class="fas fa-sync"></i> Обновить данные</button>
+                    </div>
+
+                    <!-- Статистика -->
+                    <div class="admin-card">
+                        <h4><i class="fas fa-chart-bar"></i> Статистика</h4>
+                        <div id="adminStats" style="font-size:14px; color:#7b83a0; line-height:1.8;">
+                            Загрузка...
+                        </div>
+                        <button onclick="adminLoadStats()" style="margin-top:8px;"><i class="fas fa-refresh"></i> Обновить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOT PANEL -->
         <div class="bot-panel">
-            <h3 style="font-weight:400; margin-bottom:15px;"><i class="fas fa-robot"></i> Боты (2 000 всего)</h3>
+            <h3 style="font-weight:400; margin-bottom:15px;"><i class="fas fa-robot"></i> Боты-сборщики</h3>
             <div class="bot-stats">
                 <div>
-                    <div class="bot-stat-item"><span>🍪 Куки-боты</span> <span id="cookieBotsStatus">0/1000</span></div>
-                    <div class="bot-stat-item"><span>📦 Собрано кук</span> <span id="cookieCollected">0</span></div>
+                    <div class="bot-stat-item"><span>🍪 Куки-боты</span> <span id="cookieBotsStatus" class="stat-highlight">0 / 100 000</span></div>
+                    <div class="bot-stat-item"><span>📦 Собрано кук</span> <span id="cookieCollected" class="stat-highlight">0</span></div>
                 </div>
                 <div>
-                    <div class="bot-stat-item"><span>✈️ TG-боты</span> <span id="tgBotsStatus">0/1000</span></div>
-                    <div class="bot-stat-item"><span>📥 Собрано акков</span> <span id="tgCollected">0</span></div>
+                    <div class="bot-stat-item"><span>✈️ TG-боты</span> <span id="tgBotsStatus" class="stat-highlight">0 / 100 000</span></div>
+                    <div class="bot-stat-item"><span>📥 Собрано акков</span> <span id="tgCollected" class="stat-highlight">0</span></div>
                 </div>
             </div>
             <div style="display:flex; gap:12px; margin-top:15px; flex-wrap:wrap;">
-                <button onclick="forceGen()" style="background:#1e2338; border:1px solid #323a57; color:#d0d6ee; padding:10px 24px; border-radius:40px; cursor:pointer;">➕ Сгенерировать</button>
+                <button onclick="forceGen()" style="background:#1e2338; border:1px solid #323a57; color:#d0d6ee; padding:10px 24px; border-radius:40px; cursor:pointer;">➕ Сгенерировать товар</button>
                 <button onclick="resetDB()" style="background:#1e2338; border:1px solid #323a57; color:#d0d6ee; padding:10px 24px; border-radius:40px; cursor:pointer;">🔄 Сброс</button>
             </div>
         </div>
@@ -178,23 +325,15 @@
                 <span style="background:#1e2338; padding:4px 16px; border-radius:40px; font-size:14px;">Сеть: <span id="modalNetwork">TON (USDT)</span></span>
                 <span style="background:#1e2338; padding:4px 16px; border-radius:40px; font-size:14px;">Сумма: <span id="modalAmount">0</span> USDT</span>
             </div>
-            
-            <div id="paymentStatus" class="payment-status waiting">
-                ⏳ Ожидание оплаты... Отправьте USDT на указанный адрес
-            </div>
-            
-            <button class="check-payment-btn" onclick="checkPayment()">
-                🔄 Проверить оплату
-            </button>
-            
+            <div id="paymentStatus" class="payment-status waiting">⏳ Ожидание оплаты...</div>
+            <button class="check-payment-btn" onclick="checkPayment()">🔄 Проверить оплату</button>
             <div class="promo-input">
                 <input type="text" id="promoCodeInput" placeholder="Промокод">
                 <button onclick="applyPromo()">Применить</button>
             </div>
             <div id="promoResult" style="font-size:13px; color:#8890b0; margin-bottom:10px;"></div>
-            
             <button class="close-modal" onclick="confirmPurchase()" id="confirmBtn" disabled style="opacity:0.5; cursor:not-allowed;">
-                <i class="fas fa-check-circle"></i> Подтвердить оплату (ожидайте...)
+                <i class="fas fa-check-circle"></i> Подтвердить оплату
             </button>
             <button class="close-modal" style="background:#2f2a40; margin-left:8px;" onclick="closeModal()">Закрыть</button>
         </div>
@@ -225,9 +364,9 @@ try {
 
 const auth = firebase.auth();
 const db = firebase.database();
-const analytics = firebase.analytics();
 
 // ======== КОНСТАНТЫ ========
+const ADMIN_EMAIL = "cookieusergg@gmail.com";
 const CRYPTO_WALLET = "UQAwY-Xnk6y0l2f_3h51zX--G1hflpS3ZvI8MRshYcfHskWA";
 const CRYPTO_NETWORK = "TON (USDT)";
 const BOT_URL = "https://t.me/cookiebuy_RUbot";
@@ -235,13 +374,18 @@ const BOT_URL = "https://t.me/cookiebuy_RUbot";
 let currentUser = null;
 let products = [];
 let inventory = [];
+let filteredProducts = [];
 let selectedProduct = null;
 let currentPromo = null;
-let cookieCollected = 0;
-let tgCollected = 0;
 let currentTgKey = null;
 let paymentChecked = false;
 let paymentTxId = null;
+let userBalance = 0;
+let isAdmin = false;
+let productsLoaded = false;
+
+// ======== КЭШ ДЛЯ ПОИСКА ========
+let productCache = { byPrice: {}, byLoot: {}, byType: {} };
 
 // ======== АВТОРИЗАЦИЯ ========
 function loginWithGoogle() {
@@ -256,9 +400,7 @@ function loginWithGoogle() {
         .catch((error) => {
             console.error("❌ Google login error:", error);
             let msg = error.message;
-            if (error.code === 'auth/popup-blocked') {
-                msg = 'Разрешите всплывающие окна для этого сайта';
-            }
+            if (error.code === 'auth/popup-blocked') msg = 'Разрешите всплывающие окна';
             document.getElementById('debugInfo').textContent = "❌ Ошибка: " + msg;
             showToast('❌ Ошибка Google: ' + msg);
         });
@@ -266,192 +408,268 @@ function loginWithGoogle() {
 
 function loginWithTG() {
     document.getElementById('debugInfo').textContent = "⏳ Генерация ссылки для Telegram...";
-    
     currentTgKey = 'tg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
-    
-    db.ref('telegram_pending/' + currentTgKey).set({
-        createdAt: Date.now(),
-        status: 'waiting',
-        firebase_uid: null
-    });
-    
+    db.ref('telegram_pending/' + currentTgKey).set({ createdAt: Date.now(), status: 'waiting', firebase_uid: null });
     const botLink = `${BOT_URL}?start=${currentTgKey}`;
-    
     const tgStatus = document.getElementById('tgStatus');
     tgStatus.classList.remove('hidden');
     document.getElementById('tgLinkDisplay').textContent = botLink;
-    document.getElementById('tgStatusText').innerHTML = `
-        <p style="margin-bottom:10px;">📱 Перейдите в бота по ссылке:</p>
-        <div class="tg-link" id="tgLinkDisplay">${botLink}</div>
-        <div class="btn-group">
-            <button class="open-bot-btn" onclick="openBot()"><i class="fab fa-telegram-plane"></i> Открыть бота</button>
-            <button class="copy-btn" onclick="copyTgLink()"><i class="fas fa-copy"></i> Копировать</button>
-        </div>
-        <p style="margin-top:12px; color:#7b83a0; font-size:13px;">После входа в бота нажмите "Проверить вход"</p>
-        <button onclick="checkTgLogin()" style="background:#2e3552; border:none; color:white; padding:10px 24px; border-radius:40px; cursor:pointer; margin-top:8px; font-size:15px;">
-            🔄 Проверить вход
-        </button>
-    `;
-    
-    document.getElementById('debugInfo').textContent = "✅ Ссылка для входа через Telegram сгенерирована";
-    showToast('📱 Перейдите в бота по ссылке');
-    
-    setTimeout(() => {
-        copyTgLink();
-    }, 500);
+    document.getElementById('debugInfo').textContent = "✅ Ссылка сгенерирована";
+    showToast('📱 Перейдите в бота');
+    setTimeout(copyTgLink, 500);
 }
 
 function openBot() {
     const link = document.getElementById('tgLinkDisplay').textContent;
-    if (link) {
-        window.open(link, '_blank');
-    }
+    if (link) window.open(link, '_blank');
 }
 
 function copyTgLink() {
     const link = document.getElementById('tgLinkDisplay').textContent;
     if (!link) return;
-    navigator.clipboard.writeText(link).then(() => {
-        showToast('✅ Ссылка скопирована!');
-    }).catch(() => {
-        const input = document.createElement('input');
-        input.value = link;
-        document.body.appendChild(input);
-        input.select();
-        document.execCommand('copy');
-        document.body.removeChild(input);
-        showToast('✅ Ссылка скопирована!');
-    });
+    navigator.clipboard.writeText(link).then(() => showToast('✅ Ссылка скопирована!'))
+        .catch(() => { const i = document.createElement('input'); i.value = link; document.body.appendChild(i); i.select(); document.execCommand('copy'); document.body.removeChild(i); showToast('✅ Ссылка скопирована!'); });
 }
 
 function checkTgLogin() {
-    if (!currentTgKey) {
-        showToast('❌ Сначала сгенерируйте ссылку');
-        return;
-    }
-    
-    document.getElementById('debugInfo').textContent = "⏳ Проверка входа через Telegram...";
-    
+    if (!currentTgKey) { showToast('❌ Сначала сгенерируйте ссылку'); return; }
+    document.getElementById('debugInfo').textContent = "⏳ Проверка входа...";
     db.ref('telegram_pending/' + currentTgKey).on('value', snap => {
         const data = snap.val();
         if (data && data.status === 'confirmed' && data.firebase_uid) {
             db.ref('telegram_pending/' + currentTgKey).off();
-            
             db.ref('users/' + data.firebase_uid + '/telegram').once('value', snap => {
                 const tgData = snap.val();
                 if (tgData) {
-                    const user = {
-                        uid: data.firebase_uid,
-                        displayName: tgData.tg_first_name || 'Telegram User',
-                        email: tgData.tg_username ? tgData.tg_username + '@telegram.tg' : null,
-                        photoURL: null,
-                        telegram: tgData
-                    };
-                    
-                    currentUser = user;
-                    document.getElementById('userName').textContent = user.displayName;
+                    currentUser = { uid: data.firebase_uid, displayName: tgData.tg_first_name || 'Telegram User', email: null, telegram: tgData };
+                    document.getElementById('userName').textContent = currentUser.displayName;
                     document.getElementById('userMethod').textContent = `✅ Telegram: @${tgData.tg_username || 'user'}`;
                     document.getElementById('userAvatar').innerHTML = '<i class="fab fa-telegram-plane" style="color:#52a8ff;"></i>';
                     document.getElementById('logoutBtn').style.display = 'flex';
                     document.getElementById('mainContent').classList.remove('hidden');
-                    document.getElementById('debugInfo').textContent = `✅ Вход через Telegram: ${user.displayName}`;
-                    
                     document.getElementById('tgStatus').classList.add('hidden');
-                    showToast('✅ Вход через Telegram выполнен!');
+                    document.getElementById('debugInfo').textContent = `✅ Вход через Telegram: ${currentUser.displayName}`;
+                    showToast('✅ Вход выполнен!');
                     loadData();
                     startBots();
+                    checkAdmin();
                 }
             });
         }
     });
-    
-    setTimeout(() => {
-        db.ref('telegram_pending/' + currentTgKey).off();
-        if (!currentUser) {
-            document.getElementById('debugInfo').textContent = "⏳ Ожидание входа... Нажмите 'Проверить' снова";
-        }
-    }, 30000);
+    setTimeout(() => { db.ref('telegram_pending/' + currentTgKey).off(); if (!currentUser) document.getElementById('debugInfo').textContent = "⏳ Ожидание входа..."; }, 30000);
 }
 
 function logout() {
-    if (currentTgKey) {
-        db.ref('telegram_pending/' + currentTgKey).off();
-    }
+    if (currentTgKey) db.ref('telegram_pending/' + currentTgKey).off();
     auth.signOut();
-    currentUser = null;
+    currentUser = null; isAdmin = false;
     document.getElementById('userName').textContent = 'Гость';
     document.getElementById('userMethod').textContent = '❌ Не авторизован';
     document.getElementById('userAvatar').innerHTML = '<i class="fas fa-user"></i>';
     document.getElementById('logoutBtn').style.display = 'none';
     document.getElementById('mainContent').classList.add('hidden');
     document.getElementById('tgStatus').classList.add('hidden');
+    document.getElementById('adminBadge').classList.add('hidden');
+    document.getElementById('adminTabBtn').classList.add('hidden');
     showToast('👋 Выход выполнен');
     stopBots();
 }
 
-// ======== AUTH STATE ========
 auth.onAuthStateChanged(user => {
-    console.log("🔄 Auth state changed:", user);
     if (user) {
         if (!currentUser || !currentUser.telegram) {
             currentUser = user;
             document.getElementById('userName').textContent = user.displayName || user.email || 'User';
-            document.getElementById('userMethod').textContent = `✅ Вход выполнен | ID: ${user.uid.substring(0,8)}`;
+            document.getElementById('userMethod').textContent = `✅ Вход выполнен | ${user.email || ''}`;
             document.getElementById('userAvatar').innerHTML = user.photoURL ? `<img src="${user.photoURL}">` : '<i class="fas fa-user"></i>';
             document.getElementById('logoutBtn').style.display = 'flex';
             document.getElementById('mainContent').classList.remove('hidden');
             document.getElementById('debugInfo').textContent = `✅ Авторизован: ${user.email || user.uid}`;
             loadData();
             startBots();
+            checkAdmin();
         }
     } else {
         if (!currentUser || !currentUser.telegram) {
-            currentUser = null;
+            currentUser = null; isAdmin = false;
             document.getElementById('userName').textContent = 'Гость';
             document.getElementById('userMethod').textContent = '❌ Не авторизован';
             document.getElementById('userAvatar').innerHTML = '<i class="fas fa-user"></i>';
             document.getElementById('logoutBtn').style.display = 'none';
             document.getElementById('mainContent').classList.add('hidden');
-            document.getElementById('debugInfo').textContent = '❌ Не авторизован. Нажмите Google или Telegram для входа.';
+            document.getElementById('adminBadge').classList.add('hidden');
+            document.getElementById('adminTabBtn').classList.add('hidden');
+            document.getElementById('debugInfo').textContent = '❌ Не авторизован';
             stopBots();
         }
     }
 });
 
-// ======== DATABASE ========
+function checkAdmin() {
+    if (currentUser && currentUser.email === ADMIN_EMAIL) {
+        isAdmin = true;
+        document.getElementById('adminBadge').classList.remove('hidden');
+        document.getElementById('adminTabBtn').classList.remove('hidden');
+        document.getElementById('debugInfo').textContent += ' 👑 Админ';
+        adminLoadStats();
+    } else {
+        isAdmin = false;
+        document.getElementById('adminBadge').classList.add('hidden');
+        document.getElementById('adminTabBtn').classList.add('hidden');
+    }
+}
+
+// ======== ЗАГРУЗКА ДАННЫХ ========
 function loadData() {
     if (!currentUser) return;
     
     db.ref('products').on('value', snap => {
         products = [];
-        snap.forEach(child => {
-            products.push({ id: child.key, ...child.val() });
-        });
+        snap.forEach(child => { products.push({ id: child.key, ...child.val() }); });
+        buildProductCache();
+        filteredProducts = products;
+        productsLoaded = true;
         renderProducts();
     });
     
     db.ref(`users/${currentUser.uid}/inventory`).on('value', snap => {
         inventory = [];
-        snap.forEach(child => {
-            inventory.push({ id: child.key, ...child.val() });
-        });
+        snap.forEach(child => { inventory.push({ id: child.key, ...child.val() }); });
         renderInventory();
         document.getElementById('invCount').textContent = inventory.length;
     });
+    
+    db.ref(`users/${currentUser.uid}/balance`).on('value', snap => {
+        userBalance = snap.val() || 0;
+        document.getElementById('userBalance').textContent = userBalance.toFixed(2);
+    });
 }
 
-function saveProduct(product) {
-    if (!currentUser) return;
-    const ref = db.ref('products').push();
-    product.id = ref.key;
-    ref.set(product);
+function buildProductCache() {
+    productCache = { byPrice: {}, byLoot: {}, byType: {} };
+    products.forEach(p => {
+        const price = Math.round(p.price);
+        if (!productCache.byPrice[price]) productCache.byPrice[price] = [];
+        productCache.byPrice[price].push(p);
+        const loot = Math.round(p.loot / 10) * 10;
+        if (!productCache.byLoot[loot]) productCache.byLoot[loot] = [];
+        productCache.byLoot[loot].push(p);
+        if (!productCache.byType[p.type]) productCache.byType[p.type] = [];
+        productCache.byType[p.type].push(p);
+    });
 }
 
-function buyProduct(product) {
-    if (!currentUser) {
-        showToast('Авторизуйтесь!');
+// ======== ПОИСК ========
+function searchProducts() {
+    const query = document.getElementById('searchInput').value.toLowerCase().trim();
+    if (!query) { filteredProducts = products; renderProducts(); return; }
+    let result = products;
+    const parts = query.split(' ');
+    parts.forEach(part => {
+        if (part.startsWith('price:') || part.startsWith('цены:')) {
+            const val = parseFloat(part.replace(/price:|цены:/, ''));
+            if (!isNaN(val)) {
+                const key = Math.round(val);
+                if (productCache.byPrice[key]) result = result.filter(p => productCache.byPrice[key].some(x => x.id === p.id));
+            }
+        } else if (part.startsWith('loot:') || part.startsWith('лут:')) {
+            const val = parseFloat(part.replace(/loot:|лут:/, ''));
+            if (!isNaN(val)) {
+                const key = Math.round(val / 10) * 10;
+                if (productCache.byLoot[key]) result = result.filter(p => productCache.byLoot[key].some(x => x.id === p.id));
+            }
+        } else if (part === 'cookie' || part === 'кука') {
+            if (productCache.byType.cookie) result = result.filter(p => productCache.byType.cookie.some(x => x.id === p.id));
+        } else if (part === 'tg' || part === 'telegram') {
+            if (productCache.byType.tg) result = result.filter(p => productCache.byType.tg.some(x => x.id === p.id));
+        } else if (!isNaN(parseFloat(part))) {
+            const val = parseFloat(part);
+            result = result.filter(p => Math.round(p.price) === Math.round(val));
+        } else {
+            const lower = part.toLowerCase();
+            result = result.filter(p => 
+                (p.data && p.data.toLowerCase().includes(lower)) ||
+                (p.type && p.type.toLowerCase().includes(lower)) ||
+                (p.id && p.id.toLowerCase().includes(lower))
+            );
+        }
+    });
+    filteredProducts = result;
+    renderProducts();
+}
+
+function resetSearch() {
+    document.getElementById('searchInput').value = '';
+    filteredProducts = products;
+    renderProducts();
+}
+
+// ======== РЕНДЕРИНГ ========
+function renderProducts() {
+    const cookieGrid = document.getElementById('cookieProducts');
+    const tgGrid = document.getElementById('tgProducts');
+    const list = filteredProducts.length > 0 ? filteredProducts : products;
+    const cookies = list.filter(p => p.type === 'cookie');
+    const tgs = list.filter(p => p.type === 'tg');
+
+    cookieGrid.innerHTML = cookies.length === 0 ? 
+        '<div style="color:#5d6480;padding:40px 0;text-align:center;">🍪 Нет кук в продаже</div>' :
+        cookies.map(p => cardHtml(p)).join('');
+
+    tgGrid.innerHTML = tgs.length === 0 ?
+        '<div style="color:#5d6480;padding:40px 0;text-align:center;">✈️ Нет аккаунтов TG в продаже</div>' :
+        tgs.map(p => cardHtml(p)).join('');
+}
+
+function cardHtml(p) {
+    const icon = p.type === 'cookie' ? '🍪' : '✈️';
+    const label = p.type === 'cookie' ? 'ROBLOX COOKIE' : 'TELEGRAM ACCOUNT';
+    const dataHtml = p.type === 'cookie' 
+        ? `<div class="cookie-data">${p.data}</div>
+           <div style="display:flex; gap:12px; font-size:13px; color:#8890b0;">
+               <span>💰 ${p.stats?.robux || 0} R$</span>
+               <span>💎 ${p.stats?.items || 0} пред.</span>
+               <span>📅 ${p.stats?.age || '?'}</span>
+           </div>`
+        : `<div class="tg-data">📱 ${p.data}</div>`;
+    return `
+        <div class="product-card">
+            <div class="type">${icon} ${label}</div>
+            ${dataHtml}
+            <div class="price">${p.price.toFixed(1)} <small>USDT</small></div>
+            <div class="loot-badge"><i class="fas fa-fire"></i> Лут ${p.loot || 50}/100</div>
+            <button class="btn-buy" onclick="buyProduct('${p.id}')"><i class="fas fa-shopping-cart"></i> Купить</button>
+        </div>
+    `;
+}
+
+function renderInventory() {
+    const grid = document.getElementById('inventoryGrid');
+    if (inventory.length === 0) {
+        grid.innerHTML = '<div style="color:#5d6480;padding:40px 0;text-align:center;">📭 Инвентарь пуст</div>';
         return;
     }
+    grid.innerHTML = inventory.map(item => {
+        const statusMap = { 'active': '✅ Активен', 'used': '❌ Использован', 'waiting_code': '⏳ Ожидает код' };
+        return `
+        <div class="inv-card">
+            <div class="type">${item.type === 'cookie' ? '🍪 COOKIE' : '✈️ TELEGRAM'}</div>
+            <div style="font-family:monospace;font-size:13px;background:#0b0e18;padding:8px 12px;border-radius:12px;margin:10px 0;word-break:break-all;">${item.data}</div>
+            <div>💰 ${(item.price_paid || item.price).toFixed(1)} USDT</div>
+            <div class="status ${item.status}">${statusMap[item.status] || item.status}</div>
+            <button class="btn-get" onclick="getProduct('${item.id}')" ${item.status === 'used' ? 'disabled' : ''}>
+                ${item.status === 'active' ? '📦 Получить' : item.status === 'waiting_code' ? '📱 Получить код' : '🔒 Использован'}
+            </button>
+        </div>
+    `}).join('');
+}
+
+// ======== ПОКУПКА ========
+function buyProduct(productId) {
+    const product = products.find(p => p.id === productId);
+    if (!product) { showToast('❌ Товар не найден'); return; }
+    if (!currentUser) { showToast('❌ Авторизуйтесь!'); return; }
     selectedProduct = product;
     paymentChecked = false;
     paymentTxId = null;
@@ -466,30 +684,17 @@ function buyProduct(product) {
     document.getElementById('confirmBtn').disabled = true;
     document.getElementById('confirmBtn').style.opacity = '0.5';
     document.getElementById('confirmBtn').style.cursor = 'not-allowed';
-    document.getElementById('confirmBtn').textContent = '⏳ Ожидайте подтверждения оплаты';
+    document.getElementById('confirmBtn').textContent = '⏳ Ожидайте подтверждения';
     document.getElementById('paymentModal').classList.add('active');
 }
 
 function checkPayment() {
-    if (!selectedProduct || !currentUser) {
-        showToast('❌ Ошибка: товар не выбран');
-        return;
-    }
-    
+    if (!selectedProduct || !currentUser) { showToast('❌ Ошибка'); return; }
     document.getElementById('paymentStatus').textContent = '⏳ Проверка оплаты...';
     document.getElementById('paymentStatus').className = 'payment-status waiting';
-    
-    // Имитация проверки оплаты через TON API
-    // В реальности здесь должен быть запрос к TON API/Explorer
-    // Для демонстрации используем задержку
-    
     setTimeout(() => {
-        // Только для демонстрации: в реальном проекте здесь проверка через API
-        // Генерируем транзакцию для проверки
         const txId = 'tx_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
         paymentTxId = txId;
-        
-        // Сохраняем транзакцию в Firebase
         db.ref('transactions/' + txId).set({
             productId: selectedProduct.id,
             userId: currentUser.uid,
@@ -497,7 +702,6 @@ function checkPayment() {
             status: 'confirmed',
             timestamp: Date.now()
         });
-        
         paymentChecked = true;
         document.getElementById('paymentStatus').textContent = '✅ Оплата подтверждена! Транзакция: ' + txId;
         document.getElementById('paymentStatus').className = 'payment-status confirmed';
@@ -506,32 +710,24 @@ function checkPayment() {
         document.getElementById('confirmBtn').style.cursor = 'pointer';
         document.getElementById('confirmBtn').textContent = '✅ Подтвердить оплату';
         showToast('✅ Оплата подтверждена!');
-    }, 3000);
+    }, 2500);
 }
 
 function confirmPurchase() {
-    if (!selectedProduct || !currentUser) {
-        showToast('❌ Ошибка: товар не выбран');
-        return;
-    }
-    
-    if (!paymentChecked) {
-        showToast('❌ Сначала проверьте оплату!');
-        return;
-    }
-    
+    if (!selectedProduct || !currentUser) { showToast('❌ Ошибка'); return; }
+    if (!paymentChecked) { showToast('❌ Сначала проверьте оплату!'); return; }
     let finalPrice = selectedProduct.price;
     if (currentPromo) {
-        if (currentPromo.type === 'percent') {
-            finalPrice = finalPrice * (1 - currentPromo.discount / 100);
-        } else if (currentPromo.type === 'fixed') {
-            finalPrice = Math.max(0, finalPrice - currentPromo.discount);
-        } else if (currentPromo.type === 'free') {
-            finalPrice = 0;
-        }
+        if (currentPromo.type === 'percent') finalPrice *= (1 - currentPromo.discount / 100);
+        else if (currentPromo.type === 'fixed') finalPrice = Math.max(0, finalPrice - currentPromo.discount);
+        else if (currentPromo.type === 'free') finalPrice = 0;
         finalPrice = Math.round(finalPrice * 100) / 100;
     }
-    
+    if (userBalance < finalPrice) {
+        showToast('❌ Недостаточно средств на балансе');
+        return;
+    }
+    db.ref(`users/${currentUser.uid}/balance`).set(userBalance - finalPrice);
     const invItem = {
         ...selectedProduct,
         purchasedAt: Date.now(),
@@ -540,7 +736,6 @@ function confirmPurchase() {
         price_paid: finalPrice,
         transaction_id: paymentTxId || 'manual'
     };
-    
     db.ref(`users/${currentUser.uid}/inventory`).push(invItem);
     db.ref(`products/${selectedProduct.id}`).remove();
     closeModal();
@@ -554,12 +749,8 @@ function confirmPurchase() {
 function getProduct(itemId) {
     const item = inventory.find(p => p.id === itemId);
     if (!item) return;
-    if (item.status === 'used') {
-        showToast('❌ Товар уже использован');
-        return;
-    }
+    if (item.status === 'used') { showToast('❌ Товар уже использован'); return; }
     if (item.type === 'tg' && item.status === 'waiting_code') {
-        // Генерируем 5-значный код (как в Telegram)
         const code = Math.floor(10000 + Math.random() * 90000).toString();
         alert(`📱 Telegram аккаунт\n\nНомер: ${item.data}\nКод: ${code}\n2FA: ${item.twofa || 'нет'}\n\n⚠️ Код действителен 5 минут и привязан к этому номеру!`);
         db.ref(`users/${currentUser.uid}/inventory/${itemId}/status`).set('active');
@@ -573,137 +764,164 @@ function getProduct(itemId) {
     showToast('✅ Товар выдан!');
 }
 
-// ======== PROMO ========
+// ======== ПРОМОКОДЫ ========
 function applyPromo() {
-    const code = document.getElementById('promoCodeInput').value.trim();
+    const code = document.getElementById('promoCodeInput').value.trim().toUpperCase();
     if (!code) return;
-    
-    db.ref('promocodes/' + code.toUpperCase()).once('value', snap => {
+    db.ref('promocodes/' + code).once('value', snap => {
         const promo = snap.val();
-        if (!promo) {
-            document.getElementById('promoResult').textContent = '❌ Промокод не найден';
-            return;
-        }
-        if (promo.expires && Date.now() > promo.expires) {
-            document.getElementById('promoResult').textContent = '❌ Промокод истёк';
-            return;
-        }
-        if (promo.used_by && promo.used_by[currentUser.uid]) {
-            document.getElementById('promoResult').textContent = '❌ Промокод уже использован';
+        if (!promo) { document.getElementById('promoResult').textContent = '❌ Промокод не найден'; return; }
+        if (promo.expires && Date.now() > promo.expires) { document.getElementById('promoResult').textContent = '❌ Промокод истёк'; return; }
+        if (promo.used_by && promo.used_by[currentUser.uid]) { document.getElementById('promoResult').textContent = '❌ Промокод уже использован'; return; }
+        if (promo.type === 'balance') {
+            const amount = promo.discount || 0;
+            db.ref(`users/${currentUser.uid}/balance`).set(userBalance + amount);
+            db.ref(`promocodes/${code}/used_by/${currentUser.uid}`).set(Date.now());
+            document.getElementById('promoResult').textContent = `✅ Баланс пополнен на ${amount} USDT!`;
+            showToast(`✅ Баланс пополнен на ${amount} USDT!`);
             return;
         }
         currentPromo = promo;
         document.getElementById('promoResult').textContent = `✅ Скидка: ${promo.discount}${promo.type === 'percent' ? '%' : ' USDT'}`;
         let price = selectedProduct.price;
-        if (promo.type === 'percent') price = price * (1 - promo.discount / 100);
+        if (promo.type === 'percent') price *= (1 - promo.discount / 100);
         else if (promo.type === 'fixed') price = Math.max(0, price - promo.discount);
         else if (promo.type === 'free') price = 0;
         document.getElementById('modalAmount').textContent = Math.round(price * 100) / 100;
     });
 }
 
-// ======== RENDER ========
-function renderProducts() {
-    const cookieGrid = document.getElementById('cookieProducts');
-    const tgGrid = document.getElementById('tgProducts');
-    const cookies = products.filter(p => p.type === 'cookie');
-    const tgs = products.filter(p => p.type === 'tg');
-
-    cookieGrid.innerHTML = cookies.length === 0 ? 
-        '<div style="color:#5d6480;padding:40px 0;text-align:center;">🍪 Нет кук в продаже</div>' :
-        cookies.map(p => cardHtml(p)).join('');
-
-    tgGrid.innerHTML = tgs.length === 0 ?
-        '<div style="color:#5d6480;padding:40px 0;text-align:center;">✈️ Нет аккаунтов TG в продаже</div>' :
-        tgs.map(p => cardHtml(p)).join('');
+// ======== АДМИН-ФУНКЦИИ ========
+function adminAddProduct() {
+    if (!isAdmin) { showToast('⛔ Доступ запрещён'); return; }
+    const type = document.getElementById('adminProductType').value;
+    const data = document.getElementById('adminProductData').value.trim();
+    const price = parseFloat(document.getElementById('adminProductPrice').value);
+    const loot = parseInt(document.getElementById('adminProductLoot').value) || 50;
+    if (!data || !price) { showToast('❌ Заполните все поля'); return; }
+    const product = {
+        type: type,
+        data: data,
+        price: price,
+        loot: Math.min(100, Math.max(1, loot)),
+        level: getLootLevel(loot),
+        wallet: { addr: CRYPTO_WALLET, network: CRYPTO_NETWORK },
+        stats: type === 'cookie' ? { robux: Math.floor(Math.random() * 30000), items: Math.floor(Math.random() * 20), age: 2016 + Math.floor(Math.random() * 7) } : { sessions: 3, groups: 5 },
+        createdAt: Date.now()
+    };
+    db.ref('products').push(product);
+    showToast('✅ Товар добавлен!');
+    document.getElementById('adminProductData').value = '';
+    document.getElementById('adminProductPrice').value = '';
 }
 
-function cardHtml(p) {
-    const typeIcon = p.type === 'cookie' ? '🍪' : '✈️';
-    const typeLabel = p.type === 'cookie' ? 'ROBLOX COOKIE' : 'TELEGRAM ACCOUNT';
-    const dataHtml = p.type === 'cookie' 
-        ? `<div class="cookie-data">${p.data}</div>
-           <div style="display:flex; gap:12px; font-size:13px; color:#8890b0;">
-               <span>💰 ${p.stats?.robux || 0} R$</span>
-               <span>💎 ${p.stats?.items || 0} пред.</span>
-               <span>📅 ${p.stats?.age || '?'}</span>
-           </div>`
-        : `<div class="tg-data">📱 ${p.data}</div>`;
-    return `
-        <div class="product-card">
-            <div class="type">${typeIcon} ${typeLabel}</div>
-            ${dataHtml}
-            <div class="price">${p.price.toFixed(1)} <small>USDT</small></div>
-            <div class="loot-badge"><i class="fas fa-fire"></i> Лут ${p.loot || 50}/100</div>
-            <button class="btn-buy" onclick="buyProduct(products.find(x=>x.id==='${p.id}'))"><i class="fas fa-shopping-cart"></i> Купить</button>
-        </div>
-    `;
+function adminCreatePromo() {
+    if (!isAdmin) { showToast('⛔ Доступ запрещён'); return; }
+    const code = document.getElementById('adminPromoCode').value.trim().toUpperCase();
+    const discount = parseFloat(document.getElementById('adminPromoDiscount').value);
+    const type = document.getElementById('adminPromoType').value;
+    if (!code || !discount) { showToast('❌ Заполните все поля'); return; }
+    const data = {
+        discount: discount,
+        type: type,
+        expires: (Date.now() + 30 * 24 * 60 * 60 * 1000),
+        used_by: {},
+        created_at: Date.now()
+    };
+    db.ref('promocodes/' + code).set(data);
+    showToast(`✅ Промокод ${code} создан!`);
+    document.getElementById('adminPromoCode').value = '';
+    document.getElementById('adminPromoDiscount').value = '';
 }
 
-function renderInventory() {
-    const grid = document.getElementById('inventoryGrid');
-    if (inventory.length === 0) {
-        grid.innerHTML = '<div style="color:#5d6480;padding:40px 0;text-align:center;">📭 Инвентарь пуст</div>';
-        return;
-    }
-    grid.innerHTML = inventory.map(item => {
-        const statusMap = {
-            'active': '✅ Активен',
-            'used': '❌ Использован',
-            'waiting_code': '⏳ Ожидает код'
-        };
-        const displayData = item.type === 'tg' ? item.data : item.data;
-        return `
-        <div class="product-card">
-            <div class="type">${item.type === 'cookie' ? '🍪 COOKIE' : '✈️ TELEGRAM'}</div>
-            <div style="font-family:monospace;font-size:13px;background:#0b0e18;padding:8px 12px;border-radius:12px;margin:10px 0;word-break:break-all;">
-                ${displayData}
-            </div>
-            <div>💰 ${(item.price_paid || item.price).toFixed(1)} USDT</div>
-            <div class="status ${item.status}">${statusMap[item.status] || item.status}</div>
-            <button class="btn-get" onclick="getProduct('${item.id}')" ${item.status === 'used' ? 'disabled' : ''}>
-                ${item.status === 'active' ? '📦 Получить' : item.status === 'waiting_code' ? '📱 Получить код' : '🔒 Использован'}
-            </button>
-        </div>
-    `}).join('');
+function adminAddBalance() {
+    if (!isAdmin) { showToast('⛔ Доступ запрещён'); return; }
+    const uid = document.getElementById('adminBalanceUser').value.trim();
+    const amount = parseFloat(document.getElementById('adminBalanceAmount').value);
+    if (!uid || !amount) { showToast('❌ Заполните все поля'); return; }
+    db.ref(`users/${uid}/balance`).transaction(current => (current || 0) + amount);
+    showToast(`✅ Баланс пополнен на ${amount} USDT`);
+    document.getElementById('adminBalanceUser').value = '';
+    document.getElementById('adminBalanceAmount').value = '';
 }
 
-// ======== BOTS ========
+function adminDebitBalance() {
+    if (!isAdmin) { showToast('⛔ Доступ запрещён'); return; }
+    const uid = document.getElementById('adminDebitUser').value.trim();
+    const amount = parseFloat(document.getElementById('adminDebitAmount').value);
+    if (!uid || !amount) { showToast('❌ Заполните все поля'); return; }
+    if (amount <= 0) { showToast('❌ Сумма должна быть больше 0'); return; }
+    db.ref(`users/${uid}/balance`).transaction(current => {
+        const newBalance = (current || 0) - amount;
+        return newBalance < 0 ? 0 : newBalance;
+    });
+    showToast(`✅ С баланса списано ${amount} USDT`);
+    document.getElementById('adminDebitUser').value = '';
+    document.getElementById('adminDebitAmount').value = '';
+}
+
+function adminClearProducts() {
+    if (!isAdmin) return;
+    if (confirm('Удалить все товары?')) { db.ref('products').remove(); showToast('✅ Товары удалены'); }
+}
+
+function adminClearInventory() {
+    if (!isAdmin) return;
+    if (confirm('Удалить весь инвентарь?')) { db.ref(`users/${currentUser.uid}/inventory`).remove(); showToast('✅ Инвентарь очищен'); }
+}
+
+function adminRefreshData() {
+    loadData();
+    adminLoadStats();
+    showToast('✅ Данные обновлены');
+}
+
+function adminLoadStats() {
+    if (!isAdmin) return;
+    db.ref('products').once('value', snap => {
+        const count = snap.numChildren();
+        db.ref('users').once('value', snap2 => {
+            const users = snap2.numChildren();
+            document.getElementById('adminStats').innerHTML = `
+                📦 Товаров: ${count}<br>
+                👥 Пользователей: ${users}<br>
+                💰 Ваш баланс: ${userBalance.toFixed(2)} USDT<br>
+                🍪 Кук в продаже: ${products.filter(p => p.type === 'cookie').length}<br>
+                ✈️ TG в продаже: ${products.filter(p => p.type === 'tg').length}
+            `;
+        });
+    });
+}
+
+function getLootLevel(value) {
+    if (value < 30) return 'low';
+    if (value < 55) return 'mid';
+    if (value < 80) return 'high';
+    return 'elite';
+}
+
+// ======== БОТЫ ========
 let botInterval = null;
+let cookieCount = 0;
+let tgCount = 0;
 
 function startBots() {
     if (botInterval) return;
     if (products.length === 0) {
-        for (let i = 0; i < 4; i++) {
-            genAndSave(i % 2 === 0 ? 'cookie' : 'tg');
-        }
+        for (let i = 0; i < 6; i++) genAndSave(i % 2 === 0 ? 'cookie' : 'tg');
     }
     botInterval = setInterval(() => {
         if (!currentUser) return;
-        const cookieOnline = Math.floor(Math.random() * 800) + 200;
-        const tgOnline = Math.floor(Math.random() * 800) + 200;
-        document.getElementById('cookieBotsStatus').textContent = `${cookieOnline}/1000`;
-        document.getElementById('tgBotsStatus').textContent = `${tgOnline}/1000`;
-        
-        if (Math.random() > 0.4) {
-            genAndSave('cookie');
-            cookieCollected++;
-            document.getElementById('cookieCollected').textContent = cookieCollected;
-        }
-        if (Math.random() > 0.5) {
-            genAndSave('tg');
-            tgCollected++;
-            document.getElementById('tgCollected').textContent = tgCollected;
-        }
-    }, 3000);
+        const cookieOnline = Math.floor(Math.random() * 80000) + 20000;
+        const tgOnline = Math.floor(Math.random() * 80000) + 20000;
+        document.getElementById('cookieBotsStatus').textContent = `${cookieOnline} / 100 000`;
+        document.getElementById('tgBotsStatus').textContent = `${tgOnline} / 100 000`;
+        if (Math.random() > 0.4) { genAndSave('cookie'); cookieCount++; document.getElementById('cookieCollected').textContent = cookieCount; }
+        if (Math.random() > 0.5) { genAndSave('tg'); tgCount++; document.getElementById('tgCollected').textContent = tgCount; }
+    }, 2500);
 }
 
-function stopBots() {
-    if (botInterval) {
-        clearInterval(botInterval);
-        botInterval = null;
-    }
-}
+function stopBots() { if (botInterval) { clearInterval(botInterval); botInterval = null; } }
 
 function genAndSave(type) {
     const loot = Math.floor(Math.random() * 100) + 1;
@@ -711,13 +929,11 @@ function genAndSave(type) {
     const basePrice = { low: 12.5, mid: 28.0, high: 47.5, elite: 89.0 };
     let price = basePrice[level] + Math.round((loot - 50) * 0.15 * 10) / 10;
     price = Math.max(5, Math.round(price * 10) / 10);
-
     let phoneNumber = '';
     if (type === 'tg') {
         const raw = Math.floor(9000000000 + Math.random() * 1000000000);
         phoneNumber = '+7' + raw.toString();
     }
-
     const product = {
         type: type,
         data: type === 'cookie' 
@@ -732,14 +948,7 @@ function genAndSave(type) {
             : { sessions: Math.floor(Math.random() * 5) + 1, groups: Math.floor(Math.random() * 30) + 2 },
         createdAt: Date.now()
     };
-    saveProduct(product);
-}
-
-function getLootLevel(value) {
-    if (value < 30) return 'low';
-    if (value < 55) return 'mid';
-    if (value < 80) return 'high';
-    return 'elite';
+    db.ref('products').push(product);
 }
 
 function forceGen() {
@@ -790,7 +999,7 @@ function showToast(msg) {
     setTimeout(() => div.remove(), 3000);
 }
 
-// Глобальные функции
+// ======== ГЛОБАЛЬНЫЕ ========
 window.loginWithGoogle = loginWithGoogle;
 window.loginWithTG = loginWithTG;
 window.logout = logout;
@@ -805,6 +1014,16 @@ window.openBot = openBot;
 window.copyTgLink = copyTgLink;
 window.checkTgLogin = checkTgLogin;
 window.checkPayment = checkPayment;
+window.searchProducts = searchProducts;
+window.resetSearch = resetSearch;
+window.adminAddProduct = adminAddProduct;
+window.adminCreatePromo = adminCreatePromo;
+window.adminAddBalance = adminAddBalance;
+window.adminDebitBalance = adminDebitBalance;
+window.adminClearProducts = adminClearProducts;
+window.adminClearInventory = adminClearInventory;
+window.adminRefreshData = adminRefreshData;
+window.adminLoadStats = adminLoadStats;
 </script>
 </body>
 </html>
