@@ -103,24 +103,6 @@
         .admin-card .btn-warning { background: #5a4a2a; }
         .admin-card .btn-warning:hover { background: #7a5a3a; }
         
-        .modal-overlay { display: none; position: fixed; top:0;left:0;width:100%;height:100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 999; }
-        .modal-overlay.active { display: flex; }
-        .modal-box { background: #151c2b; padding: 35px 40px; border-radius: 36px; max-width: 520px; width: 90%; border: 1px solid #38405f; max-height: 90vh; overflow-y: auto; }
-        .modal-box .addr { background: #0b0f1a; padding: 16px; border-radius: 18px; font-family: monospace; word-break: break-all; border: 1px solid #2b3350; margin: 16px 0; font-size: 14px; }
-        .modal-box .close-modal { background: #2f3657; border: none; color: #fff; padding: 12px 28px; border-radius: 40px; cursor: pointer; margin-top: 12px; transition: 0.2s; }
-        .modal-box .close-modal:hover { background: #414b72; }
-        .modal-box input { background: #0b0f1a; border: 1px solid #2b3350; color: #d0d6ee; padding: 12px 16px; border-radius: 40px; width: 100%; margin: 10px 0; font-size: 16px; }
-        .promo-input { display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap; }
-        .promo-input input { flex: 1; min-width: 150px; background: #0b0f1a; border: 1px solid #2b3350; color: #d0d6ee; padding: 10px 16px; border-radius: 40px; font-size: 14px; }
-        .promo-input button { background: #2e3552; border: none; color: #e6ecff; padding: 10px 20px; border-radius: 40px; cursor: pointer; font-weight: 500; }
-        .promo-input button:hover { background: #414b72; }
-        .payment-status { padding: 12px; border-radius: 12px; margin: 10px 0; text-align: center; }
-        .payment-status.waiting { background: #1a1a2a; border: 1px solid #3a3a5a; color: #8890b0; }
-        .payment-status.confirmed { background: #1a2a1a; border: 1px solid #2a5a2a; color: #5fdc8a; }
-        .payment-status.failed { background: #2a1a1a; border: 1px solid #5a2a2a; color: #d96c6c; }
-        .check-payment-btn { background: #2e3552; border: none; color: white; padding: 10px 20px; border-radius: 40px; cursor: pointer; font-size: 14px; margin-top: 8px; width: 100%; }
-        .check-payment-btn:hover { background: #414b72; }
-        
         .tg-login-box { background: #0b0f1a; padding: 20px; border-radius: 16px; border: 1px solid #2b3350; margin: 15px 0; text-align: center; }
         .tg-login-box .tg-link { font-family: monospace; font-size: 14px; background: #1a1f2e; padding: 12px; border-radius: 12px; word-break: break-all; margin: 10px 0; }
         .copy-btn { background: #2e3552; border: none; color: #e6ecff; padding: 8px 20px; border-radius: 40px; cursor: pointer; font-size: 13px; }
@@ -315,29 +297,7 @@
         </div>
     </div>
 
-    <!-- PAYMENT MODAL -->
-    <div class="modal-overlay" id="paymentModal">
-        <div class="modal-box">
-            <h2><i class="fas fa-coins"></i> Оплата USDT (TON)</h2>
-            <p style="color:#8890b0;">Отправьте точную сумму на адрес:</p>
-            <div class="addr" id="modalAddress">UQAwY-Xnk6y0l2f_3h51zX--G1hflpS3ZvI8MRshYcfHskWA</div>
-            <div style="display:flex; gap:12px; flex-wrap:wrap; margin:10px 0;">
-                <span style="background:#1e2338; padding:4px 16px; border-radius:40px; font-size:14px;">Сеть: <span id="modalNetwork">TON (USDT)</span></span>
-                <span style="background:#1e2338; padding:4px 16px; border-radius:40px; font-size:14px;">Сумма: <span id="modalAmount">0</span> USDT</span>
-            </div>
-            <div id="paymentStatus" class="payment-status waiting">⏳ Ожидание оплаты...</div>
-            <button class="check-payment-btn" onclick="checkPayment()">🔄 Проверить оплату</button>
-            <div class="promo-input">
-                <input type="text" id="promoCodeInput" placeholder="Промокод">
-                <button onclick="applyPromo()">Применить</button>
-            </div>
-            <div id="promoResult" style="font-size:13px; color:#8890b0; margin-bottom:10px;"></div>
-            <button class="close-modal" onclick="confirmPurchase()" id="confirmBtn" disabled style="opacity:0.5; cursor:not-allowed;">
-                <i class="fas fa-check-circle"></i> Подтвердить оплату
-            </button>
-            <button class="close-modal" style="background:#2f2a40; margin-left:8px;" onclick="closeModal()">Закрыть</button>
-        </div>
-    </div>
+    <!-- МОДАЛКА УДАЛЕНА — больше не нужна -->
 </div>
 
 <script>
@@ -367,25 +327,16 @@ const db = firebase.database();
 
 // ======== КОНСТАНТЫ ========
 const ADMIN_EMAIL = "cookieusergg@gmail.com";
-const CRYPTO_WALLET = "UQAwY-Xnk6y0l2f_3h51zX--G1hflpS3ZvI8MRshYcfHskWA";
-const CRYPTO_NETWORK = "TON (USDT)";
 const BOT_URL = "https://t.me/cookiebuy_RUbot";
 
 let currentUser = null;
 let products = [];
 let inventory = [];
 let filteredProducts = [];
-let selectedProduct = null;
-let currentPromo = null;
-let currentTgKey = null;
-let paymentChecked = false;
-let paymentTxId = null;
 let userBalance = 0;
 let isAdmin = false;
-let productsLoaded = false;
-
-// ======== КЭШ ДЛЯ ПОИСКА ========
 let productCache = { byPrice: {}, byLoot: {}, byType: {} };
+let currentTgKey = null;
 
 // ======== АВТОРИЗАЦИЯ ========
 function loginWithGoogle() {
@@ -529,7 +480,6 @@ function loadData() {
         snap.forEach(child => { products.push({ id: child.key, ...child.val() }); });
         buildProductCache();
         filteredProducts = products;
-        productsLoaded = true;
         renderProducts();
     });
     
@@ -665,85 +615,31 @@ function renderInventory() {
     `}).join('');
 }
 
-// ======== ПОКУПКА ========
+// ======== ПОКУПКА (МГНОВЕННО, БЕЗ МОДАЛКИ) ========
 function buyProduct(productId) {
+    if (!currentUser) { showToast('❌ Авторизуйтесь!'); return; }
     const product = products.find(p => p.id === productId);
     if (!product) { showToast('❌ Товар не найден'); return; }
-    if (!currentUser) { showToast('❌ Авторизуйтесь!'); return; }
-    selectedProduct = product;
-    paymentChecked = false;
-    paymentTxId = null;
-    document.getElementById('modalAddress').textContent = CRYPTO_WALLET;
-    document.getElementById('modalNetwork').textContent = CRYPTO_NETWORK;
-    document.getElementById('modalAmount').textContent = product.price.toFixed(1);
-    document.getElementById('promoResult').textContent = '';
-    document.getElementById('promoCodeInput').value = '';
-    currentPromo = null;
-    document.getElementById('paymentStatus').className = 'payment-status waiting';
-    document.getElementById('paymentStatus').textContent = '⏳ Ожидание оплаты... Отправьте USDT на указанный адрес';
-    document.getElementById('confirmBtn').disabled = true;
-    document.getElementById('confirmBtn').style.opacity = '0.5';
-    document.getElementById('confirmBtn').style.cursor = 'not-allowed';
-    document.getElementById('confirmBtn').textContent = '⏳ Ожидайте подтверждения';
-    document.getElementById('paymentModal').classList.add('active');
-}
-
-function checkPayment() {
-    if (!selectedProduct || !currentUser) { showToast('❌ Ошибка'); return; }
-    document.getElementById('paymentStatus').textContent = '⏳ Проверка оплаты...';
-    document.getElementById('paymentStatus').className = 'payment-status waiting';
-    setTimeout(() => {
-        const txId = 'tx_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
-        paymentTxId = txId;
-        db.ref('transactions/' + txId).set({
-            productId: selectedProduct.id,
-            userId: currentUser.uid,
-            amount: selectedProduct.price,
-            status: 'confirmed',
-            timestamp: Date.now()
-        });
-        paymentChecked = true;
-        document.getElementById('paymentStatus').textContent = '✅ Оплата подтверждена! Транзакция: ' + txId;
-        document.getElementById('paymentStatus').className = 'payment-status confirmed';
-        document.getElementById('confirmBtn').disabled = false;
-        document.getElementById('confirmBtn').style.opacity = '1';
-        document.getElementById('confirmBtn').style.cursor = 'pointer';
-        document.getElementById('confirmBtn').textContent = '✅ Подтвердить оплату';
-        showToast('✅ Оплата подтверждена!');
-    }, 2500);
-}
-
-function confirmPurchase() {
-    if (!selectedProduct || !currentUser) { showToast('❌ Ошибка'); return; }
-    if (!paymentChecked) { showToast('❌ Сначала проверьте оплату!'); return; }
-    let finalPrice = selectedProduct.price;
-    if (currentPromo) {
-        if (currentPromo.type === 'percent') finalPrice *= (1 - currentPromo.discount / 100);
-        else if (currentPromo.type === 'fixed') finalPrice = Math.max(0, finalPrice - currentPromo.discount);
-        else if (currentPromo.type === 'free') finalPrice = 0;
-        finalPrice = Math.round(finalPrice * 100) / 100;
-    }
-    if (userBalance < finalPrice) {
-        showToast('❌ Недостаточно средств на балансе');
+    if (userBalance < product.price) {
+        showToast(`❌ Недостаточно средств. Нужно ${product.price.toFixed(2)} USDT, у вас ${userBalance.toFixed(2)} USDT`);
         return;
     }
-    db.ref(`users/${currentUser.uid}/balance`).set(userBalance - finalPrice);
+    // Списываем баланс
+    const newBalance = userBalance - product.price;
+    db.ref(`users/${currentUser.uid}/balance`).set(newBalance);
+    // Добавляем в инвентарь
     const invItem = {
-        ...selectedProduct,
+        ...product,
         purchasedAt: Date.now(),
-        status: selectedProduct.type === 'tg' ? 'waiting_code' : 'active',
+        status: product.type === 'tg' ? 'waiting_code' : 'active',
         owner: currentUser.uid,
-        price_paid: finalPrice,
-        transaction_id: paymentTxId || 'manual'
+        price_paid: product.price,
+        transaction_id: 'instant_' + Date.now()
     };
     db.ref(`users/${currentUser.uid}/inventory`).push(invItem);
-    db.ref(`products/${selectedProduct.id}`).remove();
-    closeModal();
-    showToast('✅ Товар куплен!');
-    selectedProduct = null;
-    currentPromo = null;
-    paymentChecked = false;
-    paymentTxId = null;
+    // Удаляем из продажи
+    db.ref(`products/${productId}`).remove();
+    showToast(`✅ Товар куплен за ${product.price.toFixed(2)} USDT!`);
 }
 
 function getProduct(itemId) {
@@ -765,30 +661,8 @@ function getProduct(itemId) {
 }
 
 // ======== ПРОМОКОДЫ ========
-function applyPromo() {
-    const code = document.getElementById('promoCodeInput').value.trim().toUpperCase();
-    if (!code) return;
-    db.ref('promocodes/' + code).once('value', snap => {
-        const promo = snap.val();
-        if (!promo) { document.getElementById('promoResult').textContent = '❌ Промокод не найден'; return; }
-        if (promo.expires && Date.now() > promo.expires) { document.getElementById('promoResult').textContent = '❌ Промокод истёк'; return; }
-        if (promo.used_by && promo.used_by[currentUser.uid]) { document.getElementById('promoResult').textContent = '❌ Промокод уже использован'; return; }
-        if (promo.type === 'balance') {
-            const amount = promo.discount || 0;
-            db.ref(`users/${currentUser.uid}/balance`).set(userBalance + amount);
-            db.ref(`promocodes/${code}/used_by/${currentUser.uid}`).set(Date.now());
-            document.getElementById('promoResult').textContent = `✅ Баланс пополнен на ${amount} USDT!`;
-            showToast(`✅ Баланс пополнен на ${amount} USDT!`);
-            return;
-        }
-        currentPromo = promo;
-        document.getElementById('promoResult').textContent = `✅ Скидка: ${promo.discount}${promo.type === 'percent' ? '%' : ' USDT'}`;
-        let price = selectedProduct.price;
-        if (promo.type === 'percent') price *= (1 - promo.discount / 100);
-        else if (promo.type === 'fixed') price = Math.max(0, price - promo.discount);
-        else if (promo.type === 'free') price = 0;
-        document.getElementById('modalAmount').textContent = Math.round(price * 100) / 100;
-    });
+function applyPromoCode(code) {
+    // Эта функция теперь не используется, оставлена для совместимости
 }
 
 // ======== АДМИН-ФУНКЦИИ ========
@@ -805,7 +679,7 @@ function adminAddProduct() {
         price: price,
         loot: Math.min(100, Math.max(1, loot)),
         level: getLootLevel(loot),
-        wallet: { addr: CRYPTO_WALLET, network: CRYPTO_NETWORK },
+        wallet: { addr: "UQAwY-Xnk6y0l2f_3h51zX--G1hflpS3ZvI8MRshYcfHskWA", network: "TON (USDT)" },
         stats: type === 'cookie' ? { robux: Math.floor(Math.random() * 30000), items: Math.floor(Math.random() * 20), age: 2016 + Math.floor(Math.random() * 7) } : { sessions: 3, groups: 5 },
         createdAt: Date.now()
     };
@@ -942,7 +816,7 @@ function genAndSave(type) {
         loot: loot,
         level: level,
         price: price,
-        wallet: { addr: CRYPTO_WALLET, network: CRYPTO_NETWORK },
+        wallet: { addr: "UQAwY-Xnk6y0l2f_3h51zX--G1hflpS3ZvI8MRshYcfHskWA", network: "TON (USDT)" },
         stats: type === 'cookie' 
             ? { robux: Math.floor(Math.random() * 30000) + 500, items: Math.floor(Math.random() * 20) + 1, age: 2016 + Math.floor(Math.random() * 7) }
             : { sessions: Math.floor(Math.random() * 5) + 1, groups: Math.floor(Math.random() * 30) + 2 },
@@ -976,18 +850,6 @@ document.querySelectorAll('.tabs button').forEach(btn => {
     });
 });
 
-// ======== MODAL ========
-function closeModal() {
-    document.getElementById('paymentModal').classList.remove('active');
-    selectedProduct = null;
-    currentPromo = null;
-    paymentChecked = false;
-    paymentTxId = null;
-}
-document.getElementById('paymentModal').addEventListener('click', e => {
-    if (e.target === e.currentTarget) closeModal();
-});
-
 // ======== TOAST ========
 function showToast(msg) {
     const old = document.querySelector('.toast');
@@ -1004,16 +866,12 @@ window.loginWithGoogle = loginWithGoogle;
 window.loginWithTG = loginWithTG;
 window.logout = logout;
 window.buyProduct = buyProduct;
-window.confirmPurchase = confirmPurchase;
 window.getProduct = getProduct;
-window.applyPromo = applyPromo;
 window.forceGen = forceGen;
 window.resetDB = resetDB;
-window.closeModal = closeModal;
 window.openBot = openBot;
 window.copyTgLink = copyTgLink;
 window.checkTgLogin = checkTgLogin;
-window.checkPayment = checkPayment;
 window.searchProducts = searchProducts;
 window.resetSearch = resetSearch;
 window.adminAddProduct = adminAddProduct;
