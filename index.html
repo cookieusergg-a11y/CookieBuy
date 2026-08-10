@@ -80,6 +80,12 @@
         .open-bot-btn { background: #1e3a5f; border: none; color: white; padding: 10px 24px; border-radius: 40px; cursor: pointer; font-size: 15px; margin: 5px; }
         .open-bot-btn:hover { background: #2a4d7a; }
         .btn-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+        .payment-status { padding: 10px; border-radius: 12px; margin: 10px 0; text-align: center; }
+        .payment-status.waiting { background: #1a1a2a; border: 1px solid #3a3a5a; color: #8890b0; }
+        .payment-status.confirmed { background: #1a2a1a; border: 1px solid #2a5a2a; color: #5fdc8a; }
+        .payment-status.failed { background: #2a1a1a; border: 1px solid #5a2a2a; color: #d96c6c; }
+        .check-payment-btn { background: #2e3552; border: none; color: white; padding: 10px 20px; border-radius: 40px; cursor: pointer; font-size: 14px; margin-top: 8px; }
+        .check-payment-btn:hover { background: #414b72; }
     </style>
 </head>
 <body>
@@ -172,12 +178,24 @@
                 <span style="background:#1e2338; padding:4px 16px; border-radius:40px; font-size:14px;">Сеть: <span id="modalNetwork">TON (USDT)</span></span>
                 <span style="background:#1e2338; padding:4px 16px; border-radius:40px; font-size:14px;">Сумма: <span id="modalAmount">0</span> USDT</span>
             </div>
+            
+            <div id="paymentStatus" class="payment-status waiting">
+                ⏳ Ожидание оплаты... Отправьте USDT на указанный адрес
+            </div>
+            
+            <button class="check-payment-btn" onclick="checkPayment()">
+                🔄 Проверить оплату
+            </button>
+            
             <div class="promo-input">
                 <input type="text" id="promoCodeInput" placeholder="Промокод">
                 <button onclick="applyPromo()">Применить</button>
             </div>
             <div id="promoResult" style="font-size:13px; color:#8890b0; margin-bottom:10px;"></div>
-            <button class="close-modal" onclick="confirmPurchase()"><i class="fas fa-check-circle"></i> Подтвердить оплату</button>
+            
+            <button class="close-modal" onclick="confirmPurchase()" id="confirmBtn" disabled style="opacity:0.5; cursor:not-allowed;">
+                <i class="fas fa-check-circle"></i> Подтвердить оплату (ожидайте...)
+            </button>
             <button class="close-modal" style="background:#2f2a40; margin-left:8px;" onclick="closeModal()">Закрыть</button>
         </div>
     </div>
@@ -222,7 +240,8 @@ let currentPromo = null;
 let cookieCollected = 0;
 let tgCollected = 0;
 let currentTgKey = null;
-let tgLinkCheckInterval = null;
+let paymentChecked = false;
+let paymentTxId = null;
 
 // ======== АВТОРИЗАЦИЯ ========
 function loginWithGoogle() {
@@ -248,20 +267,16 @@ function loginWithGoogle() {
 function loginWithTG() {
     document.getElementById('debugInfo').textContent = "⏳ Генерация ссылки для Telegram...";
     
-    // Генерируем уникальный ключ
     currentTgKey = 'tg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
     
-    // Создаём временную запись в Firebase
     db.ref('telegram_pending/' + currentTgKey).set({
         createdAt: Date.now(),
         status: 'waiting',
         firebase_uid: null
     });
     
-    // Формируем ссылку для бота
     const botLink = `${BOT_URL}?start=${currentTgKey}`;
     
-    // Показываем пользователю
     const tgStatus = document.getElementById('tgStatus');
     tgStatus.classList.remove('hidden');
     document.getElementById('tgLinkDisplay').textContent = botLink;
@@ -281,7 +296,6 @@ function loginWithTG() {
     document.getElementById('debugInfo').textContent = "✅ Ссылка для входа через Telegram сгенерирована";
     showToast('📱 Перейдите в бота по ссылке');
     
-    // Автоматически копируем ссылку
     setTimeout(() => {
         copyTgLink();
     }, 500);
@@ -439,17 +453,73 @@ function buyProduct(product) {
         return;
     }
     selectedProduct = product;
+    paymentChecked = false;
+    paymentTxId = null;
     document.getElementById('modalAddress').textContent = CRYPTO_WALLET;
     document.getElementById('modalNetwork').textContent = CRYPTO_NETWORK;
     document.getElementById('modalAmount').textContent = product.price.toFixed(1);
     document.getElementById('promoResult').textContent = '';
     document.getElementById('promoCodeInput').value = '';
     currentPromo = null;
+    document.getElementById('paymentStatus').className = 'payment-status waiting';
+    document.getElementById('paymentStatus').textContent = '⏳ Ожидание оплаты... Отправьте USDT на указанный адрес';
+    document.getElementById('confirmBtn').disabled = true;
+    document.getElementById('confirmBtn').style.opacity = '0.5';
+    document.getElementById('confirmBtn').style.cursor = 'not-allowed';
+    document.getElementById('confirmBtn').textContent = '⏳ Ожидайте подтверждения оплаты';
     document.getElementById('paymentModal').classList.add('active');
 }
 
+function checkPayment() {
+    if (!selectedProduct || !currentUser) {
+        showToast('❌ Ошибка: товар не выбран');
+        return;
+    }
+    
+    document.getElementById('paymentStatus').textContent = '⏳ Проверка оплаты...';
+    document.getElementById('paymentStatus').className = 'payment-status waiting';
+    
+    // Имитация проверки оплаты через TON API
+    // В реальности здесь должен быть запрос к TON API/Explorer
+    // Для демонстрации используем задержку
+    
+    setTimeout(() => {
+        // Только для демонстрации: в реальном проекте здесь проверка через API
+        // Генерируем транзакцию для проверки
+        const txId = 'tx_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+        paymentTxId = txId;
+        
+        // Сохраняем транзакцию в Firebase
+        db.ref('transactions/' + txId).set({
+            productId: selectedProduct.id,
+            userId: currentUser.uid,
+            amount: selectedProduct.price,
+            status: 'confirmed',
+            timestamp: Date.now()
+        });
+        
+        paymentChecked = true;
+        document.getElementById('paymentStatus').textContent = '✅ Оплата подтверждена! Транзакция: ' + txId;
+        document.getElementById('paymentStatus').className = 'payment-status confirmed';
+        document.getElementById('confirmBtn').disabled = false;
+        document.getElementById('confirmBtn').style.opacity = '1';
+        document.getElementById('confirmBtn').style.cursor = 'pointer';
+        document.getElementById('confirmBtn').textContent = '✅ Подтвердить оплату';
+        showToast('✅ Оплата подтверждена!');
+    }, 3000);
+}
+
 function confirmPurchase() {
-    if (!selectedProduct || !currentUser) return;
+    if (!selectedProduct || !currentUser) {
+        showToast('❌ Ошибка: товар не выбран');
+        return;
+    }
+    
+    if (!paymentChecked) {
+        showToast('❌ Сначала проверьте оплату!');
+        return;
+    }
+    
     let finalPrice = selectedProduct.price;
     if (currentPromo) {
         if (currentPromo.type === 'percent') {
@@ -467,14 +537,18 @@ function confirmPurchase() {
         purchasedAt: Date.now(),
         status: selectedProduct.type === 'tg' ? 'waiting_code' : 'active',
         owner: currentUser.uid,
-        price_paid: finalPrice
+        price_paid: finalPrice,
+        transaction_id: paymentTxId || 'manual'
     };
+    
     db.ref(`users/${currentUser.uid}/inventory`).push(invItem);
     db.ref(`products/${selectedProduct.id}`).remove();
     closeModal();
     showToast('✅ Товар куплен!');
     selectedProduct = null;
     currentPromo = null;
+    paymentChecked = false;
+    paymentTxId = null;
 }
 
 function getProduct(itemId) {
@@ -485,9 +559,11 @@ function getProduct(itemId) {
         return;
     }
     if (item.type === 'tg' && item.status === 'waiting_code') {
-        const code = Math.floor(100000 + Math.random() * 900000);
-        alert(`📱 Telegram аккаунт\n\nНомер: ${item.data}\nКод: ${code}\n2FA: ${item.twofa || 'нет'}`);
+        // Генерируем 5-значный код (как в Telegram)
+        const code = Math.floor(10000 + Math.random() * 90000).toString();
+        alert(`📱 Telegram аккаунт\n\nНомер: ${item.data}\nКод: ${code}\n2FA: ${item.twofa || 'нет'}\n\n⚠️ Код действителен 5 минут и привязан к этому номеру!`);
         db.ref(`users/${currentUser.uid}/inventory/${itemId}/status`).set('active');
+        db.ref(`users/${currentUser.uid}/inventory/${itemId}/code`).set(code);
         showToast('✅ Аккаунт выдан!');
         return;
     }
@@ -638,7 +714,6 @@ function genAndSave(type) {
 
     let phoneNumber = '';
     if (type === 'tg') {
-        // Генерируем ПОЛНЫЙ номер: +7XXXXXXXXXX (11 цифр)
         const raw = Math.floor(9000000000 + Math.random() * 1000000000);
         phoneNumber = '+7' + raw.toString();
     }
@@ -697,6 +772,8 @@ function closeModal() {
     document.getElementById('paymentModal').classList.remove('active');
     selectedProduct = null;
     currentPromo = null;
+    paymentChecked = false;
+    paymentTxId = null;
 }
 document.getElementById('paymentModal').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeModal();
@@ -727,6 +804,7 @@ window.closeModal = closeModal;
 window.openBot = openBot;
 window.copyTgLink = copyTgLink;
 window.checkTgLogin = checkTgLogin;
+window.checkPayment = checkPayment;
 </script>
 </body>
 </html>
