@@ -32,6 +32,7 @@
         .logo { font-size: 28px; font-weight: 600; background: linear-gradient(135deg, #b8b0e6, #7a8cce); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .logo i { margin-right: 10px; -webkit-text-fill-color: #7a8cce; }
         .site-title { font-size: 14px; color: #7b83a0; margin-left: 12px; font-weight: 400; -webkit-text-fill-color: #7b83a0; }
+        .bot-username { background: #1a1f2e; padding: 6px 16px; border-radius: 40px; font-size: 13px; color: #52a8ff; border: 1px solid #2a3a5a; margin-left: 10px; }
         .tabs { display: flex; gap: 8px; margin: 20px 0 25px 0; border-bottom: 1px solid #1e2335; padding-bottom: 12px; flex-wrap: wrap; }
         .tabs button { background: transparent; border: none; color: #7b83a0; padding: 10px 24px; cursor: pointer; border-radius: 40px; transition: 0.2s; font-size: 15px; }
         .tabs button:hover { color: #d0d6ee; background: #1a1f2e; }
@@ -76,7 +77,9 @@
         .tg-login-box .tg-link { font-family: monospace; font-size: 14px; background: #1a1f2e; padding: 12px; border-radius: 12px; word-break: break-all; margin: 10px 0; }
         .copy-btn { background: #2e3552; border: none; color: #e6ecff; padding: 8px 20px; border-radius: 40px; cursor: pointer; font-size: 13px; }
         .copy-btn:hover { background: #414b72; }
-        .bot-username { background: #1a1f2e; padding: 6px 16px; border-radius: 40px; font-size: 13px; color: #52a8ff; border: 1px solid #2a3a5a; }
+        .open-bot-btn { background: #1e3a5f; border: none; color: white; padding: 10px 24px; border-radius: 40px; cursor: pointer; font-size: 15px; margin: 5px; }
+        .open-bot-btn:hover { background: #2a4d7a; }
+        .btn-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -110,8 +113,18 @@
 
         <!-- TG LOGIN STATUS -->
         <div id="tgStatus" class="tg-login-box hidden">
-            <i class="fab fa-telegram-plane" style="color:#52a8ff; font-size:24px;"></i>
-            <p id="tgStatusText" style="margin-top:8px; color:#8890b0;">Ожидание входа...</p>
+            <i class="fab fa-telegram-plane" style="color:#52a8ff; font-size:28px;"></i>
+            <p style="margin-top:10px; font-size:16px; font-weight:500;">Вход через Telegram</p>
+            <p style="color:#8890b0; font-size:14px; margin-bottom:10px;">Перейдите в бота по ссылке:</p>
+            <div class="tg-link" id="tgLinkDisplay">Загрузка...</div>
+            <div class="btn-group">
+                <button class="open-bot-btn" onclick="openBot()"><i class="fab fa-telegram-plane"></i> Открыть бота</button>
+                <button class="copy-btn" onclick="copyTgLink()"><i class="fas fa-copy"></i> Копировать</button>
+            </div>
+            <p style="margin-top:12px; color:#7b83a0; font-size:13px;">После входа в бота нажмите "Проверить вход"</p>
+            <button onclick="checkTgLogin()" style="background:#2e3552; border:none; color:white; padding:10px 24px; border-radius:40px; cursor:pointer; margin-top:8px; font-size:15px;">
+                🔄 Проверить вход
+            </button>
         </div>
         
         <div class="tabs">
@@ -199,7 +212,7 @@ const analytics = firebase.analytics();
 // ======== КОНСТАНТЫ ========
 const CRYPTO_WALLET = "UQAwY-Xnk6y0l2f_3h51zX--G1hflpS3ZvI8MRshYcfHskWA";
 const CRYPTO_NETWORK = "TON (USDT)";
-const BOT_URL = "https://t.me/cookiebuy_RUbot"; // Ваш бот
+const BOT_URL = "https://t.me/cookiebuy_RUbot";
 
 let currentUser = null;
 let products = [];
@@ -208,6 +221,8 @@ let selectedProduct = null;
 let currentPromo = null;
 let cookieCollected = 0;
 let tgCollected = 0;
+let currentTgKey = null;
+let tgLinkCheckInterval = null;
 
 // ======== АВТОРИЗАЦИЯ ========
 function loginWithGoogle() {
@@ -234,43 +249,79 @@ function loginWithTG() {
     document.getElementById('debugInfo').textContent = "⏳ Генерация ссылки для Telegram...";
     
     // Генерируем уникальный ключ
-    const tgKey = 'tg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+    currentTgKey = 'tg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
     
     // Создаём временную запись в Firebase
-    db.ref('telegram_pending/' + tgKey).set({
+    db.ref('telegram_pending/' + currentTgKey).set({
         createdAt: Date.now(),
         status: 'waiting',
         firebase_uid: null
     });
     
     // Формируем ссылку для бота
-    const botLink = `${BOT_URL}?start=${tgKey}`;
+    const botLink = `${BOT_URL}?start=${currentTgKey}`;
     
     // Показываем пользователю
     const tgStatus = document.getElementById('tgStatus');
     tgStatus.classList.remove('hidden');
+    document.getElementById('tgLinkDisplay').textContent = botLink;
     document.getElementById('tgStatusText').innerHTML = `
         <p style="margin-bottom:10px;">📱 Перейдите в бота по ссылке:</p>
-        <div class="tg-link">${botLink}</div>
-        <button class="copy-btn" onclick="copyText('${botLink}')"><i class="fas fa-copy"></i> Копировать</button>
-        <p style="margin-top:12px; color:#7b83a0; font-size:13px;">После входа в бота, нажмите "Проверить вход"</p>
-        <button onclick="checkTgLogin('${tgKey}')" style="background:#1e3a5f; border:none; color:white; padding:10px 24px; border-radius:40px; cursor:pointer; margin-top:8px;">
+        <div class="tg-link" id="tgLinkDisplay">${botLink}</div>
+        <div class="btn-group">
+            <button class="open-bot-btn" onclick="openBot()"><i class="fab fa-telegram-plane"></i> Открыть бота</button>
+            <button class="copy-btn" onclick="copyTgLink()"><i class="fas fa-copy"></i> Копировать</button>
+        </div>
+        <p style="margin-top:12px; color:#7b83a0; font-size:13px;">После входа в бота нажмите "Проверить вход"</p>
+        <button onclick="checkTgLogin()" style="background:#2e3552; border:none; color:white; padding:10px 24px; border-radius:40px; cursor:pointer; margin-top:8px; font-size:15px;">
             🔄 Проверить вход
         </button>
     `;
     
-    window._tgKey = tgKey;
     document.getElementById('debugInfo').textContent = "✅ Ссылка для входа через Telegram сгенерирована";
     showToast('📱 Перейдите в бота по ссылке');
+    
+    // Автоматически копируем ссылку
+    setTimeout(() => {
+        copyTgLink();
+    }, 500);
 }
 
-function checkTgLogin(key) {
+function openBot() {
+    const link = document.getElementById('tgLinkDisplay').textContent;
+    if (link) {
+        window.open(link, '_blank');
+    }
+}
+
+function copyTgLink() {
+    const link = document.getElementById('tgLinkDisplay').textContent;
+    if (!link) return;
+    navigator.clipboard.writeText(link).then(() => {
+        showToast('✅ Ссылка скопирована!');
+    }).catch(() => {
+        const input = document.createElement('input');
+        input.value = link;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        showToast('✅ Ссылка скопирована!');
+    });
+}
+
+function checkTgLogin() {
+    if (!currentTgKey) {
+        showToast('❌ Сначала сгенерируйте ссылку');
+        return;
+    }
+    
     document.getElementById('debugInfo').textContent = "⏳ Проверка входа через Telegram...";
     
-    db.ref('telegram_pending/' + key).on('value', snap => {
+    db.ref('telegram_pending/' + currentTgKey).on('value', snap => {
         const data = snap.val();
         if (data && data.status === 'confirmed' && data.firebase_uid) {
-            db.ref('telegram_pending/' + key).off();
+            db.ref('telegram_pending/' + currentTgKey).off();
             
             db.ref('users/' + data.firebase_uid + '/telegram').once('value', snap => {
                 const tgData = snap.val();
@@ -301,48 +352,44 @@ function checkTgLogin(key) {
     });
     
     setTimeout(() => {
-        db.ref('telegram_pending/' + key).off();
+        db.ref('telegram_pending/' + currentTgKey).off();
         if (!currentUser) {
             document.getElementById('debugInfo').textContent = "⏳ Ожидание входа... Нажмите 'Проверить' снова";
         }
     }, 30000);
 }
 
-function copyText(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        showToast('✅ Ссылка скопирована!');
-    }).catch(() => {
-        const input = document.createElement('input');
-        input.value = text;
-        document.body.appendChild(input);
-        input.select();
-        document.execCommand('copy');
-        document.body.removeChild(input);
-        showToast('✅ Ссылка скопирована!');
-    });
-}
-
 function logout() {
-    if (window._tgKey) {
-        db.ref('telegram_pending/' + window._tgKey).off();
+    if (currentTgKey) {
+        db.ref('telegram_pending/' + currentTgKey).off();
     }
     auth.signOut();
+    currentUser = null;
+    document.getElementById('userName').textContent = 'Гость';
+    document.getElementById('userMethod').textContent = '❌ Не авторизован';
+    document.getElementById('userAvatar').innerHTML = '<i class="fas fa-user"></i>';
+    document.getElementById('logoutBtn').style.display = 'none';
+    document.getElementById('mainContent').classList.add('hidden');
+    document.getElementById('tgStatus').classList.add('hidden');
     showToast('👋 Выход выполнен');
+    stopBots();
 }
 
 // ======== AUTH STATE ========
 auth.onAuthStateChanged(user => {
     console.log("🔄 Auth state changed:", user);
     if (user) {
-        currentUser = user;
-        document.getElementById('userName').textContent = user.displayName || user.email || 'User';
-        document.getElementById('userMethod').textContent = `✅ Вход выполнен | ID: ${user.uid.substring(0,8)}`;
-        document.getElementById('userAvatar').innerHTML = user.photoURL ? `<img src="${user.photoURL}">` : '<i class="fas fa-user"></i>';
-        document.getElementById('logoutBtn').style.display = 'flex';
-        document.getElementById('mainContent').classList.remove('hidden');
-        document.getElementById('debugInfo').textContent = `✅ Авторизован: ${user.email || user.uid}`;
-        loadData();
-        startBots();
+        if (!currentUser || !currentUser.telegram) {
+            currentUser = user;
+            document.getElementById('userName').textContent = user.displayName || user.email || 'User';
+            document.getElementById('userMethod').textContent = `✅ Вход выполнен | ID: ${user.uid.substring(0,8)}`;
+            document.getElementById('userAvatar').innerHTML = user.photoURL ? `<img src="${user.photoURL}">` : '<i class="fas fa-user"></i>';
+            document.getElementById('logoutBtn').style.display = 'flex';
+            document.getElementById('mainContent').classList.remove('hidden');
+            document.getElementById('debugInfo').textContent = `✅ Авторизован: ${user.email || user.uid}`;
+            loadData();
+            startBots();
+        }
     } else {
         if (!currentUser || !currentUser.telegram) {
             currentUser = null;
@@ -529,11 +576,12 @@ function renderInventory() {
             'used': '❌ Использован',
             'waiting_code': '⏳ Ожидает код'
         };
+        const displayData = item.type === 'tg' ? item.data : item.data;
         return `
         <div class="product-card">
             <div class="type">${item.type === 'cookie' ? '🍪 COOKIE' : '✈️ TELEGRAM'}</div>
             <div style="font-family:monospace;font-size:13px;background:#0b0e18;padding:8px 12px;border-radius:12px;margin:10px 0;word-break:break-all;">
-                ${item.type === 'cookie' ? item.data : item.data}
+                ${displayData}
             </div>
             <div>💰 ${(item.price_paid || item.price).toFixed(1)} USDT</div>
             <div class="status ${item.status}">${statusMap[item.status] || item.status}</div>
@@ -588,11 +636,18 @@ function genAndSave(type) {
     let price = basePrice[level] + Math.round((loot - 50) * 0.15 * 10) / 10;
     price = Math.max(5, Math.round(price * 10) / 10);
 
+    let phoneNumber = '';
+    if (type === 'tg') {
+        // Генерируем ПОЛНЫЙ номер: +7XXXXXXXXXX (11 цифр)
+        const raw = Math.floor(9000000000 + Math.random() * 1000000000);
+        phoneNumber = '+7' + raw.toString();
+    }
+
     const product = {
         type: type,
         data: type === 'cookie' 
             ? '_|WARNING:-DO-NOT-SHARE...|' + Math.random().toString(36).substring(2, 10).toUpperCase()
-            : '+7' + (900 + Math.floor(Math.random() * 100000000)).toString().padStart(9, '0'),
+            : phoneNumber,
         loot: loot,
         level: level,
         price: price,
@@ -669,7 +724,8 @@ window.applyPromo = applyPromo;
 window.forceGen = forceGen;
 window.resetDB = resetDB;
 window.closeModal = closeModal;
-window.copyText = copyText;
+window.openBot = openBot;
+window.copyTgLink = copyTgLink;
 window.checkTgLogin = checkTgLogin;
 </script>
 </body>
