@@ -100,12 +100,6 @@
     <!-- DEBUG -->
     <div class="debug-info" id="debugInfo">⏳ Инициализация Firebase...</div>
 
-    <!-- WARNING -->
-    <div id="protocolWarning" class="warning-box hidden">
-        ⚠️ Вы открыли сайт как файл (file://). Для входа через Google используйте локальный сервер:<br>
-        <code>python -m http.server 8080</code> → открыть <code>http://localhost:8080</code>
-    </div>
-
     <!-- MAIN -->
     <div id="mainContent" class="hidden">
         <div class="logo"><i class="fas fa-skull"></i>CookieBuy <span class="site-title">| Куки + Telegram</span></div>
@@ -190,15 +184,11 @@ const firebaseConfig = {
     measurementId: "G-X225TW7NHV"
 };
 
-// Проверка протокола
-if (window.location.protocol === 'file:') {
-    document.getElementById('protocolWarning').classList.remove('hidden');
-}
-
+// Инициализация
 try {
     firebase.initializeApp(firebaseConfig);
     console.log("✅ Firebase initialized");
-    document.getElementById('debugInfo').textContent = "✅ Firebase инициализирован";
+    document.getElementById('debugInfo').textContent = "✅ Firebase инициализирован | Протокол: " + window.location.protocol;
 } catch(e) {
     console.error("❌ Firebase init error:", e);
     document.getElementById('debugInfo').textContent = "❌ Ошибка Firebase: " + e.message;
@@ -225,13 +215,6 @@ let tgCollected = 0;
 function loginWithGoogle() {
     document.getElementById('debugInfo').textContent = "⏳ Вход через Google...";
     
-    // Проверка протокола
-    if (window.location.protocol === 'file:') {
-        showToast('❌ Откройте сайт через сервер: http://localhost:8080');
-        document.getElementById('debugInfo').textContent = "❌ Используйте сервер, а не file://";
-        return;
-    }
-    
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider)
         .then((result) => {
@@ -243,7 +226,10 @@ function loginWithGoogle() {
             console.error("❌ Google login error:", error);
             let msg = error.message;
             if (error.code === 'auth/operation-not-supported-in-this-environment') {
-                msg = 'Запустите сайт через сервер (python -m http.server 8080)';
+                msg = 'Используйте HTTPS или локальный сервер (не file://)';
+            }
+            if (error.code === 'auth/popup-blocked') {
+                msg = 'Разрешите всплывающие окна для этого сайта';
             }
             document.getElementById('debugInfo').textContent = "❌ Ошибка: " + msg;
             showToast('❌ Ошибка Google: ' + msg);
@@ -485,4 +471,195 @@ function applyPromo() {
 function renderProducts() {
     const cookieGrid = document.getElementById('cookieProducts');
     const tgGrid = document.getElementById('tgProducts');
-    const cookies = products.filter(p => p
+    const cookies = products.filter(p => p.type === 'cookie');
+    const tgs = products.filter(p => p.type === 'tg');
+
+    cookieGrid.innerHTML = cookies.length === 0 ? 
+        '<div style="color:#5d6480;padding:40px 0;text-align:center;">🍪 Нет кук в продаже</div>' :
+        cookies.map(p => cardHtml(p)).join('');
+
+    tgGrid.innerHTML = tgs.length === 0 ?
+        '<div style="color:#5d6480;padding:40px 0;text-align:center;">✈️ Нет аккаунтов TG в продаже</div>' :
+        tgs.map(p => cardHtml(p)).join('');
+}
+
+function cardHtml(p) {
+    const typeIcon = p.type === 'cookie' ? '🍪' : '✈️';
+    const typeLabel = p.type === 'cookie' ? 'ROBLOX COOKIE' : 'TELEGRAM ACCOUNT';
+    const dataHtml = p.type === 'cookie' 
+        ? `<div class="cookie-data">${p.data}</div>
+           <div style="display:flex; gap:12px; font-size:13px; color:#8890b0;">
+               <span>💰 ${p.stats?.robux || 0} R$</span>
+               <span>💎 ${p.stats?.items || 0} пред.</span>
+               <span>📅 ${p.stats?.age || '?'}</span>
+           </div>`
+        : `<div class="tg-data">📱 ${p.data}</div>`;
+    return `
+        <div class="product-card">
+            <div class="type">${typeIcon} ${typeLabel}</div>
+            ${dataHtml}
+            <div class="price">${p.price.toFixed(1)} <small>USDT</small></div>
+            <div class="loot-badge"><i class="fas fa-fire"></i> Лут ${p.loot || 50}/100</div>
+            <button class="btn-buy" onclick="buyProduct(products.find(x=>x.id==='${p.id}'))"><i class="fas fa-shopping-cart"></i> Купить</button>
+        </div>
+    `;
+}
+
+function renderInventory() {
+    const grid = document.getElementById('inventoryGrid');
+    if (inventory.length === 0) {
+        grid.innerHTML = '<div style="color:#5d6480;padding:40px 0;text-align:center;">📭 Инвентарь пуст</div>';
+        return;
+    }
+    grid.innerHTML = inventory.map(item => {
+        const statusMap = {
+            'active': '✅ Активен',
+            'used': '❌ Использован',
+            'waiting_code': '⏳ Ожидает код'
+        };
+        return `
+        <div class="product-card">
+            <div class="type">${item.type === 'cookie' ? '🍪 COOKIE' : '✈️ TELEGRAM'}</div>
+            <div style="font-family:monospace;font-size:13px;background:#0b0e18;padding:8px 12px;border-radius:12px;margin:10px 0;word-break:break-all;">
+                ${item.type === 'cookie' ? item.data : item.data}
+            </div>
+            <div>💰 ${(item.price_paid || item.price).toFixed(1)} USDT</div>
+            <div class="status ${item.status}">${statusMap[item.status] || item.status}</div>
+            <button class="btn-get" onclick="getProduct('${item.id}')" ${item.status === 'used' ? 'disabled' : ''}>
+                ${item.status === 'active' ? '📦 Получить' : item.status === 'waiting_code' ? '📱 Получить код' : '🔒 Использован'}
+            </button>
+        </div>
+    `}).join('');
+}
+
+// ======== BOTS ========
+let botInterval = null;
+
+function startBots() {
+    if (botInterval) return;
+    if (products.length === 0) {
+        for (let i = 0; i < 4; i++) {
+            genAndSave(i % 2 === 0 ? 'cookie' : 'tg');
+        }
+    }
+    botInterval = setInterval(() => {
+        if (!currentUser) return;
+        const cookieOnline = Math.floor(Math.random() * 800) + 200;
+        const tgOnline = Math.floor(Math.random() * 800) + 200;
+        document.getElementById('cookieBotsStatus').textContent = `${cookieOnline}/1000`;
+        document.getElementById('tgBotsStatus').textContent = `${tgOnline}/1000`;
+        
+        if (Math.random() > 0.4) {
+            genAndSave('cookie');
+            cookieCollected++;
+            document.getElementById('cookieCollected').textContent = cookieCollected;
+        }
+        if (Math.random() > 0.5) {
+            genAndSave('tg');
+            tgCollected++;
+            document.getElementById('tgCollected').textContent = tgCollected;
+        }
+    }, 3000);
+}
+
+function stopBots() {
+    if (botInterval) {
+        clearInterval(botInterval);
+        botInterval = null;
+    }
+}
+
+function genAndSave(type) {
+    const loot = Math.floor(Math.random() * 100) + 1;
+    const level = getLootLevel(loot);
+    const basePrice = { low: 12.5, mid: 28.0, high: 47.5, elite: 89.0 };
+    let price = basePrice[level] + Math.round((loot - 50) * 0.15 * 10) / 10;
+    price = Math.max(5, Math.round(price * 10) / 10);
+
+    const product = {
+        type: type,
+        data: type === 'cookie' 
+            ? '_|WARNING:-DO-NOT-SHARE...|' + Math.random().toString(36).substring(2, 10).toUpperCase()
+            : '+7' + (900 + Math.floor(Math.random() * 100000000)).toString().padStart(9, '0'),
+        loot: loot,
+        level: level,
+        price: price,
+        wallet: { addr: CRYPTO_WALLET, network: CRYPTO_NETWORK },
+        stats: type === 'cookie' 
+            ? { robux: Math.floor(Math.random() * 30000) + 500, items: Math.floor(Math.random() * 20) + 1, age: 2016 + Math.floor(Math.random() * 7) }
+            : { sessions: Math.floor(Math.random() * 5) + 1, groups: Math.floor(Math.random() * 30) + 2 },
+        createdAt: Date.now()
+    };
+    saveProduct(product);
+}
+
+function getLootLevel(value) {
+    if (value < 30) return 'low';
+    if (value < 55) return 'mid';
+    if (value < 80) return 'high';
+    return 'elite';
+}
+
+function forceGen() {
+    if (!currentUser) { showToast('Авторизуйтесь!'); return; }
+    genAndSave(Math.random() > 0.5 ? 'cookie' : 'tg');
+    showToast('✅ Товар создан');
+}
+
+function resetDB() {
+    if (!currentUser) return;
+    if (confirm('Удалить все товары и инвентарь?')) {
+        db.ref('products').remove();
+        db.ref(`users/${currentUser.uid}/inventory`).remove();
+        showToast('✅ Сброшено');
+    }
+}
+
+// ======== TABS ========
+document.querySelectorAll('.tabs button').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.getElementById(this.dataset.tab).classList.add('active');
+    });
+});
+
+// ======== MODAL ========
+function closeModal() {
+    document.getElementById('paymentModal').classList.remove('active');
+    selectedProduct = null;
+    currentPromo = null;
+}
+document.getElementById('paymentModal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+});
+
+// ======== TOAST ========
+function showToast(msg) {
+    const old = document.querySelector('.toast');
+    if (old) old.remove();
+    const div = document.createElement('div');
+    div.className = 'toast';
+    div.textContent = msg;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 3000);
+}
+
+// Глобальные функции
+window.loginWithGoogle = loginWithGoogle;
+window.loginWithTG = loginWithTG;
+window.logout = logout;
+window.buyProduct = buyProduct;
+window.confirmPurchase = confirmPurchase;
+window.getProduct = getProduct;
+window.applyPromo = applyPromo;
+window.forceGen = forceGen;
+window.resetDB = resetDB;
+window.closeModal = closeModal;
+window.completeTgLink = completeTgLink;
+window.completeTgLinkDemo = completeTgLinkDemo;
+window.closeTgOverlay = closeTgOverlay;
+</script>
+</body>
+</html>
