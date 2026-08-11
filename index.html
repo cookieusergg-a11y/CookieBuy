@@ -101,7 +101,6 @@
         .btn-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
         .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #2a3050; border-top-color: #5fdc8a; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        /* Пополнение */
         .deposit-box { background: #121724; border-radius: 16px; padding: 20px; border: 1px solid #2a3a5a; margin: 15px 0; }
         .deposit-box .wallet-addr { font-family: monospace; background: #0b0f1a; padding: 12px; border-radius: 12px; word-break: break-all; margin: 10px 0; }
         .deposit-box input { width: 100%; background: #0b0f1a; border: 1px solid #2b3350; color: #d0d6ee; padding: 12px 16px; border-radius: 40px; margin: 10px 0; font-size: 16px; }
@@ -203,7 +202,11 @@
 
         <!-- TAB: Inventory -->
         <div class="tab-content" id="tabInventory">
-            <div class="inventory-grid" id="inventoryGrid"><div style="color:#5d6480;padding:40px 0;text-align:center;"><span class="loading-spinner"></span> Загрузка инвентаря...</div></div>
+            <div class="inventory-grid" id="inventoryGrid">
+                <div style="color:#5d6480;padding:40px 0;text-align:center;">
+                    <span class="loading-spinner"></span> Загрузка инвентаря...
+                </div>
+            </div>
         </div>
 
         <!-- TAB: Deposit -->
@@ -330,7 +333,7 @@ const db = firebase.database();
 const ADMIN_EMAIL = "cookieusergg@gmail.com";
 const BOT_URL = "https://t.me/cookiebuy_RUbot";
 const CRYPTO_WALLET = "UQAwY-Xnk6y0l2f_3h51zX--G1hflpS3ZvI8MRshYcfHskWA";
-const BOT_API_URL = "https://cookiebuy-bot.up.railway.app"; // <--- ЗАМЕНИ НА СВОЙ URL БОТА
+const BOT_API_URL = "https://tg-bot.up.railway.app"; // ОБНОВЛЕНО!
 
 let currentUser = null;
 let products = [];
@@ -343,7 +346,7 @@ let currentTgKey = null;
 let inventoryListener = null;
 
 // ============================================================
-// АВТОРИЗАЦИЯ (без изменений)
+// АВТОРИЗАЦИЯ
 // ============================================================
 function loginWithGoogle() {
     document.getElementById('debugInfo').textContent = "⏳ Вход через Google...";
@@ -479,7 +482,7 @@ function checkAdmin() {
 }
 
 // ============================================================
-// ЗАГРУЗКА ДАННЫХ
+// ЗАГРУЗКА ДАННЫХ (ИНВЕНТАРЬ ИСПРАВЛЕН)
 // ============================================================
 function loadData() {
     if (!currentUser) {
@@ -488,6 +491,7 @@ function loadData() {
     }
     console.log("loadData: загружаем данные для", currentUser.uid);
 
+    // Товары
     db.ref('products').on('value', snap => {
         products = [];
         snap.forEach(child => { products.push({ id: child.key, ...child.val() }); });
@@ -497,6 +501,7 @@ function loadData() {
         console.log("Товаров загружено:", products.length);
     });
 
+    // ИНВЕНТАРЬ
     if (inventoryListener) {
         inventoryListener.off();
         inventoryListener = null;
@@ -507,14 +512,15 @@ function loadData() {
         snap.forEach(child => {
             inventory.push({ id: child.key, ...child.val() });
         });
-        renderInventory();
         document.getElementById('invCount').textContent = inventory.length;
+        renderInventory();
         console.log("Инвентарь загружен, позиций:", inventory.length);
     }, error => {
         console.error("Ошибка загрузки инвентаря:", error);
         document.getElementById('inventoryGrid').innerHTML = `<div style="color:#d96c6c;">❌ Ошибка загрузки инвентаря: ${error.message}</div>`;
     });
 
+    // Баланс
     db.ref(`users/${currentUser.uid}/balance`).on('value', snap => {
         userBalance = snap.val() || 0;
         document.getElementById('userBalance').textContent = userBalance.toFixed(2);
@@ -651,7 +657,7 @@ function renderInventory() {
 }
 
 // ============================================================
-// ПОКУПКА (мгновенная, списание в RUB)
+// ПОКУПКА
 // ============================================================
 function buyProduct(productId) {
     if (!currentUser) { showToast('❌ Авторизуйтесь!'); return; }
@@ -678,7 +684,7 @@ function buyProduct(productId) {
         };
         return db.ref(`users/${currentUser.uid}/inventory`).push(invItem);
     })
-    .then((ref) => {
+    .then(() => {
         return db.ref(`products/${productId}`).remove();
     })
     .then(() => {
@@ -715,7 +721,7 @@ function getProduct(itemId) {
 }
 
 // ============================================================
-// ПОПОЛНЕНИЕ ЧЕРЕЗ КРИПТУ (USDT -> RUB)
+// ПОПОЛНЕНИЕ (РЕАЛЬНАЯ ПРОВЕРКА)
 // ============================================================
 function copyDepositWallet() {
     const wallet = document.getElementById('depositWallet').textContent;
@@ -732,7 +738,6 @@ function checkDeposit() {
     btn.textContent = '⏳ Проверка...';
     document.getElementById('depositResult').textContent = '';
 
-    // Отправляем запрос к боту
     fetch(`${BOT_API_URL}/api/verify-deposit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -741,10 +746,9 @@ function checkDeposit() {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            const rubAmount = data.usdtAmount * 100; // 1 USDT = 100 RUB
+            const rubAmount = data.usdtAmount * 100;
             document.getElementById('depositResult').innerHTML = `<span style="color:#5fdc8a;">✅ Пополнено на ${rubAmount.toFixed(2)} RUB (${data.usdtAmount} USDT)</span>`;
             showToast(`✅ Баланс пополнен на ${rubAmount.toFixed(2)} RUB`);
-            // Обновим баланс (он обновится через слушатель)
         } else {
             document.getElementById('depositResult').innerHTML = `<span style="color:#d96c6c;">❌ ${data.error || 'Ошибка проверки'}</span>`;
         }
@@ -760,7 +764,7 @@ function checkDeposit() {
 }
 
 // ============================================================
-// АДМИН-ФУНКЦИИ (цены в RUB)
+// АДМИН-ФУНКЦИИ
 // ============================================================
 function adminAddProduct() {
     if (!isAdmin) { showToast('⛔ Доступ запрещён'); return; }
@@ -772,7 +776,7 @@ function adminAddProduct() {
     const product = {
         type: type,
         data: data,
-        price: price, // цена в RUB
+        price: price,
         loot: Math.min(100, Math.max(1, loot)),
         level: getLootLevel(loot),
         wallet: { addr: CRYPTO_WALLET, network: "TON (USDT)" },
@@ -871,7 +875,7 @@ function getLootLevel(value) {
 }
 
 // ============================================================
-// БОТЫ
+// БОТЫ-СБОРЩИКИ
 // ============================================================
 let botInterval = null;
 let cookieCount = 0;
@@ -901,8 +905,7 @@ function genAndSave(type) {
     const basePrice = { low: 12.5, mid: 28.0, high: 47.5, elite: 89.0 };
     let price = basePrice[level] + Math.round((loot - 50) * 0.15 * 10) / 10;
     price = Math.max(5, Math.round(price * 10) / 10);
-    // Для генерации товаров ботом используем цену в RUB (умножаем на 100, чтобы были адекватные)
-    price = price * 100;
+    price = price * 100; // конвертируем в RUB
     let phoneNumber = '';
     if (type === 'tg') {
         const raw = Math.floor(9000000000 + Math.random() * 1000000000);
@@ -915,7 +918,7 @@ function genAndSave(type) {
             : phoneNumber,
         loot: loot,
         level: level,
-        price: price, // в RUB
+        price: price,
         wallet: { addr: CRYPTO_WALLET, network: "TON (USDT)" },
         stats: type === 'cookie' 
             ? { robux: Math.floor(Math.random() * 30000) + 500, items: Math.floor(Math.random() * 20) + 1, age: 2016 + Math.floor(Math.random() * 7) }
