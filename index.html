@@ -70,6 +70,7 @@
         .inv-card .status.active { background: #1a3a2a; color: #5fdc8a; border: 1px solid #2a5a3a; }
         .inv-card .status.used { background: #3a1a1a; color: #d96c6c; border: 1px solid #5a2a2a; }
         .inv-card .status.waiting { background: #3a3a1a; color: #f5d98f; border: 1px solid #5a5a2a; }
+        .inv-card .status.expired { background: #3a2a2a; color: #d96c6c; border: 1px solid #5a3a3a; }
         .btn-get { background: #2e3552; border: none; color: #e6ecff; padding: 10px 20px; border-radius: 40px; cursor: pointer; margin-top: 12px; font-weight: 600; transition: 0.2s; width: 100%; }
         .btn-get:hover { background: #414b72; }
         .btn-get:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -106,6 +107,10 @@
         .deposit-box input { width: 100%; background: #0b0f1a; border: 1px solid #2b3350; color: #d0d6ee; padding: 12px 16px; border-radius: 40px; margin: 10px 0; font-size: 16px; }
         .deposit-box button { background: #2e3552; border: none; color: white; padding: 12px 24px; border-radius: 40px; cursor: pointer; font-weight: 600; width: 100%; }
         .deposit-box button:hover { background: #414b72; }
+        .code-verify { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        .code-verify input { flex: 1; min-width: 120px; background: #0b0f1a; border: 1px solid #2b3350; color: #d0d6ee; padding: 8px 14px; border-radius: 40px; font-size: 14px; }
+        .code-verify button { background: #2e3552; border: none; color: white; padding: 8px 20px; border-radius: 40px; cursor: pointer; font-weight: 600; }
+        .code-verify button:hover { background: #414b72; }
         @media (max-width: 768px) {
             .auth-section { flex-direction: column; align-items: stretch; }
             .auth-buttons { justify-content: center; }
@@ -333,7 +338,7 @@ const db = firebase.database();
 const ADMIN_EMAIL = "cookieusergg@gmail.com";
 const BOT_URL = "https://t.me/cookiebuy_RUbot";
 const CRYPTO_WALLET = "UQAwY-Xnk6y0l2f_3h51zX--G1hflpS3ZvI8MRshYcfHskWA";
-const BOT_API_URL = "https://tg-bot.up.railway.app"; // ОБНОВЛЕНО!
+const BOT_API_URL = "https://tg-bot.up.railway.app";
 
 let currentUser = null;
 let products = [];
@@ -344,6 +349,21 @@ let isAdmin = false;
 let productCache = { byPrice: {}, byLoot: {}, byType: {} };
 let currentTgKey = null;
 let inventoryListener = null;
+
+// ============================================================
+// ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ ЭКРАНИРОВАНИЯ HTML
+// ============================================================
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+}
 
 // ============================================================
 // АВТОРИЗАЦИЯ
@@ -482,7 +502,7 @@ function checkAdmin() {
 }
 
 // ============================================================
-// ЗАГРУЗКА ДАННЫХ (ИНВЕНТАРЬ ИСПРАВЛЕН)
+// ЗАГРУЗКА ДАННЫХ
 // ============================================================
 function loadData() {
     if (!currentUser) {
@@ -491,7 +511,6 @@ function loadData() {
     }
     console.log("loadData: загружаем данные для", currentUser.uid);
 
-    // Товары
     db.ref('products').on('value', snap => {
         products = [];
         snap.forEach(child => { products.push({ id: child.key, ...child.val() }); });
@@ -501,26 +520,32 @@ function loadData() {
         console.log("Товаров загружено:", products.length);
     });
 
-    // ИНВЕНТАРЬ
     if (inventoryListener) {
         inventoryListener.off();
         inventoryListener = null;
     }
     const invRef = db.ref(`users/${currentUser.uid}/inventory`);
     inventoryListener = invRef.on('value', snap => {
-        inventory = [];
-        snap.forEach(child => {
-            inventory.push({ id: child.key, ...child.val() });
-        });
-        document.getElementById('invCount').textContent = inventory.length;
-        renderInventory();
-        console.log("Инвентарь загружен, позиций:", inventory.length);
+        try {
+            inventory = [];
+            snap.forEach(child => {
+                const val = child.val();
+                if (val) {
+                    inventory.push({ id: child.key, ...val });
+                }
+            });
+            document.getElementById('invCount').textContent = inventory.length;
+            console.log("Инвентарь загружен, позиций:", inventory.length);
+            renderInventory();
+        } catch (e) {
+            console.error("Ошибка при обработке инвентаря:", e);
+            document.getElementById('inventoryGrid').innerHTML = `<div style="color:#d96c6c;">❌ Ошибка обработки инвентаря: ${e.message}</div>`;
+        }
     }, error => {
         console.error("Ошибка загрузки инвентаря:", error);
         document.getElementById('inventoryGrid').innerHTML = `<div style="color:#d96c6c;">❌ Ошибка загрузки инвентаря: ${error.message}</div>`;
     });
 
-    // Баланс
     db.ref(`users/${currentUser.uid}/balance`).on('value', snap => {
         userBalance = snap.val() || 0;
         document.getElementById('userBalance').textContent = userBalance.toFixed(2);
@@ -612,28 +637,31 @@ function cardHtml(p) {
     const icon = p.type === 'cookie' ? '🍪' : '✈️';
     const label = p.type === 'cookie' ? 'ROBLOX COOKIE' : 'TELEGRAM ACCOUNT';
     const dataHtml = p.type === 'cookie' 
-        ? `<div class="cookie-data">${p.data}</div>
+        ? `<div class="cookie-data">${escapeHtml(p.data)}</div>
            <div style="display:flex; gap:12px; font-size:13px; color:#8890b0;">
                <span>💰 ${p.stats?.robux || 0} R$</span>
                <span>💎 ${p.stats?.items || 0} пред.</span>
                <span>📅 ${p.stats?.age || '?'}</span>
            </div>`
-        : `<div class="tg-data">📱 ${p.data}</div>`;
+        : `<div class="tg-data">📱 ${escapeHtml(p.data)}</div>`;
     return `
         <div class="product-card">
             <div class="type">${icon} ${label}</div>
             ${dataHtml}
-            <div class="price">${p.price.toFixed(1)} <small>RUB</small></div>
+            <div class="price">${(p.price || 0).toFixed(1)} <small>RUB</small></div>
             <div class="loot-badge"><i class="fas fa-fire"></i> Лут ${p.loot || 50}/100</div>
             <button class="btn-buy" onclick="buyProduct('${p.id}')" data-id="${p.id}"><i class="fas fa-shopping-cart"></i> Купить</button>
         </div>
     `;
 }
 
+// ============================================================
+// ИНВЕНТАРЬ (С ПРОВЕРКОЙ КОДА)
+// ============================================================
 function renderInventory() {
     const grid = document.getElementById('inventoryGrid');
     if (!grid) return;
-    if (inventory === null) {
+    if (!inventory) {
         grid.innerHTML = '<div style="color:#5d6480;padding:40px 0;text-align:center;"><span class="loading-spinner"></span> Загрузка инвентаря...</div>';
         return;
     }
@@ -641,19 +669,52 @@ function renderInventory() {
         grid.innerHTML = '<div style="color:#5d6480;padding:40px 0;text-align:center;">📭 Инвентарь пуст</div>';
         return;
     }
-    grid.innerHTML = inventory.map(item => {
-        const statusMap = { 'active': '✅ Активен', 'used': '❌ Использован', 'waiting_code': '⏳ Ожидает код' };
-        return `
-        <div class="inv-card">
-            <div class="type">${item.type === 'cookie' ? '🍪 COOKIE' : '✈️ TELEGRAM'}</div>
-            <div style="font-family:monospace;font-size:13px;background:#0b0e18;padding:8px 12px;border-radius:12px;margin:10px 0;word-break:break-all;">${item.data}</div>
-            <div>💰 ${(item.price_paid || item.price).toFixed(1)} RUB</div>
-            <div class="status ${item.status}">${statusMap[item.status] || item.status}</div>
-            <button class="btn-get" onclick="getProduct('${item.id}')" ${item.status === 'used' ? 'disabled' : ''}>
-                ${item.status === 'active' ? '📦 Получить' : item.status === 'waiting_code' ? '📱 Получить код' : '🔒 Использован'}
-            </button>
-        </div>
-    `}).join('');
+    try {
+        let html = '';
+        inventory.forEach(item => {
+            const type = item.type || 'unknown';
+            const data = escapeHtml(item.data || 'Нет данных');
+            const price = (item.price_paid || item.price || 0).toFixed(1);
+            const status = item.status || 'unknown';
+            const statusMap = { 'active': '✅ Активен', 'used': '❌ Использован', 'waiting_code': '⏳ Ожидает код', 'expired': '⏰ Код истёк' };
+            const statusText = statusMap[status] || status;
+            const isUsed = status === 'used' || status === 'expired';
+            const id = item.id || '';
+            let btnText = '🔒 Использован';
+            let extraHtml = '';
+            if (status === 'active') {
+                btnText = '📦 Получить';
+            } else if (status === 'waiting_code') {
+                btnText = '📱 Ввести код';
+                // Добавляем поле для ввода кода
+                extraHtml = `
+                    <div class="code-verify">
+                        <input type="text" id="code_input_${id}" placeholder="Введите код" maxlength="5">
+                        <button onclick="verifyCode('${id}')">Подтвердить</button>
+                    </div>
+                `;
+            }
+            const typeLabel = type === 'cookie' ? '🍪 COOKIE' : '✈️ TELEGRAM';
+
+            html += `
+            <div class="inv-card">
+                <div class="type">${typeLabel}</div>
+                <div style="font-family:monospace;font-size:13px;background:#0b0e18;padding:8px 12px;border-radius:12px;margin:10px 0;word-break:break-all;">${data}</div>
+                <div>💰 ${price} RUB</div>
+                <div class="status ${status}">${statusText}</div>
+                ${extraHtml}
+                <button class="btn-get" onclick="getProduct('${id}')" ${isUsed ? 'disabled' : ''}>
+                    ${btnText}
+                </button>
+            </div>
+            `;
+        });
+        grid.innerHTML = html;
+        console.log("Инвентарь отрендерен, элементов:", inventory.length);
+    } catch (e) {
+        console.error("Ошибка рендеринга инвентаря:", e);
+        grid.innerHTML = `<div style="color:#d96c6c;">❌ Ошибка рендеринга инвентаря: ${e.message}</div>`;
+    }
 }
 
 // ============================================================
@@ -700,20 +761,38 @@ function buyProduct(productId) {
 }
 
 // ============================================================
-// ВЫДАЧА ТОВАРА
+// ВЫДАЧА ТОВАРА И КОДА
 // ============================================================
 function getProduct(itemId) {
     const item = inventory.find(p => p.id === itemId);
     if (!item) { showToast('❌ Товар не найден'); return; }
     if (item.status === 'used') { showToast('❌ Товар уже использован'); return; }
+    if (item.status === 'expired') { showToast('❌ Время кода истекло'); return; }
+    
     if (item.type === 'tg' && item.status === 'waiting_code') {
+        // Генерируем 5-значный код
         const code = Math.floor(10000 + Math.random() * 90000).toString();
-        alert(`📱 Telegram аккаунт\n\nНомер: ${item.data}\nКод: ${code}\n2FA: ${item.twofa || 'нет'}\n\n⚠️ Код действителен 5 минут и привязан к этому номеру!`);
-        db.ref(`users/${currentUser.uid}/inventory/${itemId}/status`).set('active');
-        db.ref(`users/${currentUser.uid}/inventory/${itemId}/code`).set(code);
-        showToast('✅ Аккаунт выдан!');
+        const expires = Date.now() + 5 * 60 * 1000; // 5 минут
+        // Сохраняем код и время в Firebase
+        const updates = {
+            code: code,
+            code_expires: expires,
+            status: 'waiting_code' // оставляем статус
+        };
+        db.ref(`users/${currentUser.uid}/inventory/${itemId}`).update(updates)
+        .then(() => {
+            alert(`📱 Код для аккаунта: ${item.data}\n\nКод: ${code}\n\nДействителен 5 минут. Введите его на сайте.`);
+            showToast('✅ Код отправлен! Введите его в поле подтверждения.');
+            // Обновим инвентарь, чтобы отобразить поле ввода кода
+            renderInventory();
+        })
+        .catch(err => {
+            showToast('❌ Ошибка сохранения кода: ' + err.message);
+        });
         return;
     }
+    
+    // Для кук или уже активированных TG
     const data = item.type === 'cookie' ? item.data : `📱 ${item.data}\nСессий: ${item.stats?.sessions || '?'}\nГрупп: ${item.stats?.groups || '?'}`;
     alert(`📦 ВЫДАЧА ТОВАРА\n\n${data}`);
     db.ref(`users/${currentUser.uid}/inventory/${itemId}/status`).set('used');
@@ -721,7 +800,44 @@ function getProduct(itemId) {
 }
 
 // ============================================================
-// ПОПОЛНЕНИЕ (РЕАЛЬНАЯ ПРОВЕРКА)
+// ПРОВЕРКА КОДА
+// ============================================================
+function verifyCode(itemId) {
+    if (!currentUser) { showToast('❌ Авторизуйтесь!'); return; }
+    const input = document.getElementById(`code_input_${itemId}`);
+    if (!input) { showToast('❌ Поле ввода не найдено'); return; }
+    const enteredCode = input.value.trim();
+    if (!enteredCode) { showToast('❌ Введите код'); return; }
+    
+    // Получаем сохранённый код из Firebase
+    db.ref(`users/${currentUser.uid}/inventory/${itemId}`).once('value')
+    .then(snap => {
+        const item = snap.val();
+        if (!item) { showToast('❌ Товар не найден'); return; }
+        if (item.status !== 'waiting_code') { showToast('❌ Этот товар не ожидает кода'); return; }
+        if (item.code_expires && Date.now() > item.code_expires) {
+            db.ref(`users/${currentUser.uid}/inventory/${itemId}/status`).set('expired');
+            showToast('❌ Время кода истекло');
+            renderInventory();
+            return;
+        }
+        if (item.code === enteredCode) {
+            // Код верный — активируем
+            db.ref(`users/${currentUser.uid}/inventory/${itemId}/status`).set('active');
+            db.ref(`users/${currentUser.uid}/inventory/${itemId}/code`).remove();
+            showToast('✅ Аккаунт активирован!');
+            renderInventory();
+        } else {
+            showToast('❌ Неверный код. Попробуйте ещё раз.');
+        }
+    })
+    .catch(err => {
+        showToast('❌ Ошибка проверки: ' + err.message);
+    });
+}
+
+// ============================================================
+// ПОПОЛНЕНИЕ (реальное)
 // ============================================================
 function copyDepositWallet() {
     const wallet = document.getElementById('depositWallet').textContent;
@@ -764,7 +880,7 @@ function checkDeposit() {
 }
 
 // ============================================================
-// АДМИН-ФУНКЦИИ
+// АДМИН-ФУНКЦИИ (без изменений)
 // ============================================================
 function adminAddProduct() {
     if (!isAdmin) { showToast('⛔ Доступ запрещён'); return; }
@@ -905,7 +1021,7 @@ function genAndSave(type) {
     const basePrice = { low: 12.5, mid: 28.0, high: 47.5, elite: 89.0 };
     let price = basePrice[level] + Math.round((loot - 50) * 0.15 * 10) / 10;
     price = Math.max(5, Math.round(price * 10) / 10);
-    price = price * 100; // конвертируем в RUB
+    price = price * 100;
     let phoneNumber = '';
     if (type === 'tg') {
         const raw = Math.floor(9000000000 + Math.random() * 1000000000);
@@ -976,6 +1092,7 @@ window.loginWithTG = loginWithTG;
 window.logout = logout;
 window.buyProduct = buyProduct;
 window.getProduct = getProduct;
+window.verifyCode = verifyCode;
 window.forceGen = forceGen;
 window.resetDB = resetDB;
 window.openBot = openBot;
