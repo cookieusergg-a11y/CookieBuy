@@ -351,7 +351,7 @@ let currentTgKey = null;
 let inventoryListener = null;
 
 // ============================================================
-// ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ ЭКРАНИРОВАНИЯ HTML
+// ЭКРАНИРОВАНИЕ
 // ============================================================
 function escapeHtml(text) {
     if (!text) return '';
@@ -366,7 +366,7 @@ function escapeHtml(text) {
 }
 
 // ============================================================
-// АВТОРИЗАЦИЯ
+// АВТОРИЗАЦИЯ (без изменений)
 // ============================================================
 function loginWithGoogle() {
     document.getElementById('debugInfo').textContent = "⏳ Вход через Google...";
@@ -656,7 +656,7 @@ function cardHtml(p) {
 }
 
 // ============================================================
-// ИНВЕНТАРЬ (С ПРОВЕРКОЙ КОДА)
+// ИНВЕНТАРЬ (ПОЛНАЯ ВЕРСИЯ)
 // ============================================================
 function renderInventory() {
     const grid = document.getElementById('inventoryGrid');
@@ -686,10 +686,9 @@ function renderInventory() {
                 btnText = '📦 Получить';
             } else if (status === 'waiting_code') {
                 btnText = '📱 Ввести код';
-                // Добавляем поле для ввода кода
                 extraHtml = `
                     <div class="code-verify">
-                        <input type="text" id="code_input_${id}" placeholder="Введите код" maxlength="5">
+                        <input type="text" id="code_input_${id}" placeholder="Введите код" maxlength="6">
                         <button onclick="verifyCode('${id}')">Подтвердить</button>
                     </div>
                 `;
@@ -770,20 +769,19 @@ function getProduct(itemId) {
     if (item.status === 'expired') { showToast('❌ Время кода истекло'); return; }
     
     if (item.type === 'tg' && item.status === 'waiting_code') {
-        // Генерируем 5-значный код
-        const code = Math.floor(10000 + Math.random() * 90000).toString();
+        // Генерируем 6-значный код
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
         const expires = Date.now() + 5 * 60 * 1000; // 5 минут
         // Сохраняем код и время в Firebase
         const updates = {
             code: code,
             code_expires: expires,
-            status: 'waiting_code' // оставляем статус
+            status: 'waiting_code'
         };
         db.ref(`users/${currentUser.uid}/inventory/${itemId}`).update(updates)
         .then(() => {
             alert(`📱 Код для аккаунта: ${item.data}\n\nКод: ${code}\n\nДействителен 5 минут. Введите его на сайте.`);
             showToast('✅ Код отправлен! Введите его в поле подтверждения.');
-            // Обновим инвентарь, чтобы отобразить поле ввода кода
             renderInventory();
         })
         .catch(err => {
@@ -800,7 +798,7 @@ function getProduct(itemId) {
 }
 
 // ============================================================
-// ПРОВЕРКА КОДА
+// ПРОВЕРКА КОДА (ПОЛНОСТЬЮ РАБОЧАЯ)
 // ============================================================
 function verifyCode(itemId) {
     if (!currentUser) { showToast('❌ Авторизуйтесь!'); return; }
@@ -809,7 +807,6 @@ function verifyCode(itemId) {
     const enteredCode = input.value.trim();
     if (!enteredCode) { showToast('❌ Введите код'); return; }
     
-    // Получаем сохранённый код из Firebase
     db.ref(`users/${currentUser.uid}/inventory/${itemId}`).once('value')
     .then(snap => {
         const item = snap.val();
@@ -825,6 +822,7 @@ function verifyCode(itemId) {
             // Код верный — активируем
             db.ref(`users/${currentUser.uid}/inventory/${itemId}/status`).set('active');
             db.ref(`users/${currentUser.uid}/inventory/${itemId}/code`).remove();
+            db.ref(`users/${currentUser.uid}/inventory/${itemId}/code_expires`).remove();
             showToast('✅ Аккаунт активирован!');
             renderInventory();
         } else {
